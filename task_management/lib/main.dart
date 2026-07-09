@@ -5,6 +5,8 @@ import 'app/routes/app.dart';
 import 'core/di/injection_container.dart' as di;
 import 'package:intl/date_symbol_data_local.dart';
 
+import 'package:sentry_flutter/sentry_flutter.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
@@ -17,10 +19,17 @@ Future<void> main() async {
   // Initialize all dependencies (storage, network, etc.)
   await di.init();
 
-  runApp(
-    // ProviderScope is required by Riverpod
-    const ProviderScope(
-      child: App(),
+  await SentryFlutter.init(
+    (options) {
+      // TODO: Replace with actual Sentry DSN when ready
+      options.dsn = 'https://example@sentry.io/add-your-dsn-here';
+      options.tracesSampleRate = 1.0;
+    },
+    appRunner: () => runApp(
+      // ProviderScope is required by Riverpod
+      const ProviderScope(
+        child: App(),
+      ),
     ),
   );
 }

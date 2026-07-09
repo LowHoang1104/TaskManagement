@@ -27,6 +27,10 @@ class WorkspaceListScreen extends StatelessWidget {
             elevation: 0,
             actions: [
               IconButton(
+                icon: const Icon(Icons.bar_chart_rounded, color: Colors.white),
+                onPressed: () => Navigator.pushNamed(context, AppRoutes.analytics),
+              ),
+              IconButton(
                 icon: const Icon(Icons.person_outline_rounded, color: Colors.white),
                 onPressed: () => Navigator.pushNamed(context, AppRoutes.profile),
               ),

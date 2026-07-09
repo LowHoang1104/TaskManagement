@@ -27,6 +27,7 @@ class AppRoutes {
   static const String profile = '/profile';
   static const String settings = '/settings';
 
-  // ─── Notifications ────────────────────────────────────────────────────────
+  // ─── Notifications & Analytics ──────────────────────────────────────────────
   static const String notifications = '/notifications';
+  static const String analytics = '/analytics';
 }

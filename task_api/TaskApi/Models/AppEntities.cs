@@ -160,4 +160,18 @@ namespace TaskApi.Models
 
         public TaskItem Task { get; set; } = null!;
     }
+
+    public class ActivityLog
+    {
+        [Key]
+        public string Id { get; set; } = Guid.NewGuid().ToString();
+        public string UserId { get; set; } = string.Empty;
+        public string ActionType { get; set; } = string.Empty; // e.g., "CREATE_TASK", "UPDATE_STATUS"
+        public string EntityId { get; set; } = string.Empty; // ID of the affected task/project
+        public string EntityType { get; set; } = string.Empty; // "Task", "Project", etc.
+        public string Details { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        public User User { get; set; } = null!;
+    }
 }

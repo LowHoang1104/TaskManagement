@@ -60,6 +60,9 @@ dependencies:
 
   # JSON
   json_annotation: ^4.9.0
+  signalr_netcore: ^1.4.4
+  sentry_flutter: ^8.14.2
+  fl_chart: ^1.2.0
 
 dev_dependencies:
   flutter_test:

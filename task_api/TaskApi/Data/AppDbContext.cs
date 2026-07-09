@@ -18,6 +18,7 @@ namespace TaskApi.Data
         public DbSet<ChecklistItem> ChecklistItems { get; set; }
         public DbSet<Tag> Tags { get; set; }
         public DbSet<TaskTag> TaskTags { get; set; }
+        public DbSet<ActivityLog> ActivityLogs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

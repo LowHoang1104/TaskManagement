@@ -8,6 +8,7 @@ import '../../feature/presentation/screens/project/project_members_screen.dart';
 import '../../feature/presentation/screens/task/task_board_screen.dart';
 import '../../feature/presentation/screens/task/task_detail_screen.dart';
 import '../../feature/presentation/screens/profile/profile_screen.dart';
+import '../../feature/presentation/screens/analytics/analytics_screen.dart';
 import 'app_routes.dart';
 
 /// Centralized route generator.
@@ -67,6 +68,9 @@ class AppRouter {
 
       case AppRoutes.notifications:
         return _build(const _PlaceholderScreen(title: 'Notifications'), settings);
+
+      case AppRoutes.analytics:
+        return _build(const AnalyticsScreen(), settings);
 
       default:
         return _build(

@@ -14,9 +14,18 @@ namespace TaskApi
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            // Sentry Configuration
+            builder.WebHost.UseSentry(o => {
+                // TODO: Replace with your actual DSN from sentry.io
+                o.Dsn = "https://examplePublicKey@o0.ingest.sentry.io/0";
+                o.TracesSampleRate = 1.0;
+            });
+
             // Add services to the container.
+            builder.Services.AddSignalR();
+            
             builder.Services.AddDbContext<AppDbContext>(options =>
-                options.UseSqlServer(builder.Configuration.GetConnectionString(" ")));
+                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
             // AutoMapper
             builder.Services.AddAutoMapper(typeof(Program));
@@ -91,6 +100,7 @@ namespace TaskApi
             app.UseAuthorization();
 
             app.MapControllers();
+            app.MapHub<TaskApi.Hubs.NotificationHub>("/hubs/notifications");
 
             app.Run();
         }
