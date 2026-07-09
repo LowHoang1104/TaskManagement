@@ -4,6 +4,7 @@ class ProjectEntity {
   final String name;
   final String? description;
   final String ownerId;
+  final int progress;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -13,6 +14,7 @@ class ProjectEntity {
     required this.name,
     this.description,
     required this.ownerId,
+    this.progress = 0,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -23,6 +25,7 @@ class ProjectEntity {
     String? name,
     String? description,
     String? ownerId,
+    int? progress,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -32,6 +35,7 @@ class ProjectEntity {
       name: name ?? this.name,
       description: description ?? this.description,
       ownerId: ownerId ?? this.ownerId,
+      progress: progress ?? this.progress,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

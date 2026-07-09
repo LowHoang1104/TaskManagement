@@ -9,6 +9,7 @@ import '../../feature/presentation/screens/task/task_board_screen.dart';
 import '../../feature/presentation/screens/task/task_detail_screen.dart';
 import '../../feature/presentation/screens/profile/profile_screen.dart';
 import '../../feature/presentation/screens/analytics/analytics_screen.dart';
+import '../../feature/domain/entities/entities.dart';
 import 'app_routes.dart';
 
 /// Centralized route generator.
@@ -41,20 +42,32 @@ class AppRouter {
 
       // ─── Project ──────────────────────────────────────────────────────────
       case AppRoutes.projectDetail:
-        return _build(const ProjectDashboardScreen(), settings);
+        final workspaceId = settings.arguments as String? ?? '';
+        return _build(ProjectDashboardScreen(workspaceId: workspaceId), settings);
 
       case AppRoutes.createProject:
         return _build(const _PlaceholderScreen(title: 'Create Project'), settings);
 
       case AppRoutes.projectMembers:
-        return _build(const ProjectMembersScreen(), settings);
+        final projectId = settings.arguments as String? ?? '';
+        return _build(ProjectMembersScreen(projectId: projectId), settings);
 
       // ── Task ─────────────────────────────────────────────────────────────
       case AppRoutes.taskBoard:
-        return _build(const TaskBoardScreen(), settings);
+        if (settings.arguments is Map<String, dynamic>) {
+          final args = settings.arguments as Map<String, dynamic>;
+          return _build(TaskBoardScreen(
+            projectId: args['projectId'] as String,
+            projectName: args['projectName'] as String,
+            workspaceName: args['workspaceName'] as String,
+          ), settings);
+        }
+        final projectId = settings.arguments as String? ?? '';
+        return _build(TaskBoardScreen(projectId: projectId, projectName: 'Project', workspaceName: 'Workspace'), settings);
 
       case AppRoutes.taskDetail:
-        return _build(const TaskDetailScreen(), settings);
+        final task = settings.arguments as TaskEntity;
+        return _build(TaskDetailScreen(task: task), settings);
 
       case AppRoutes.createTask:
         return _build(const _PlaceholderScreen(title: 'Create Task'), settings);

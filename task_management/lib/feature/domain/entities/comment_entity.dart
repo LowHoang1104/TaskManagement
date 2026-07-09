@@ -4,6 +4,8 @@ class CommentEntity {
   final String userId;
   final String content;
   final DateTime createdAt;
+  final String userFullName;
+  final String? userAvatarUrl;
 
   const CommentEntity({
     required this.id,
@@ -11,6 +13,8 @@ class CommentEntity {
     required this.userId,
     required this.content,
     required this.createdAt,
+    required this.userFullName,
+    this.userAvatarUrl,
   });
 
   CommentEntity copyWith({
@@ -19,6 +23,8 @@ class CommentEntity {
     String? userId,
     String? content,
     DateTime? createdAt,
+    String? userFullName,
+    String? userAvatarUrl,
   }) {
     return CommentEntity(
       id: id ?? this.id,
@@ -26,6 +32,8 @@ class CommentEntity {
       userId: userId ?? this.userId,
       content: content ?? this.content,
       createdAt: createdAt ?? this.createdAt,
+      userFullName: userFullName ?? this.userFullName,
+      userAvatarUrl: userAvatarUrl ?? this.userAvatarUrl,
     );
   }
 

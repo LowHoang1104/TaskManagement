@@ -29,6 +29,14 @@ namespace TaskApi.Services
 
         public async Task<TaskDto> CreateTaskAsync(string projectId, string reporterId, TaskCreateDto request)
         {
+            var projectMember = await _context.Set<ProjectMember>()
+                .FirstOrDefaultAsync(m => m.ProjectId == projectId && m.UserId == reporterId);
+
+            if (projectMember == null || (projectMember.Role != "Owner" && projectMember.Role != "Admin"))
+            {
+                throw new UnauthorizedAccessException("Only project Admins or Owners can create tasks.");
+            }
+
             var task = _mapper.Map<TaskItem>(request);
             task.ProjectId = projectId;
             task.ReporterId = reporterId;
@@ -45,10 +53,10 @@ namespace TaskApi.Services
             return _mapper.Map<TaskDto>(task);
         }
 
-        public async Task<TaskDto?> UpdateTaskAsync(string taskId, TaskUpdateDto request)
+        public async Task<TaskDto> UpdateTaskAsync(string taskId, TaskUpdateDto request, string actorId)
         {
             var task = await _context.Tasks.FindAsync(taskId);
-            if (task == null) return null;
+            if (task == null) throw new Exception("Task not found");
 
             _mapper.Map(request, task);
             task.UpdatedAt = DateTime.UtcNow;
@@ -56,6 +64,26 @@ namespace TaskApi.Services
             await _context.SaveChangesAsync();
 
             return _mapper.Map<TaskDto>(task);
+        }
+
+        public async Task DeleteTaskAsync(string id, string actorId)
+        {
+            var task = await _context.Tasks.FindAsync(id);
+            if (task == null)
+            {
+                throw new Exception("Task not found");
+            }
+
+            var projectMember = await _context.Set<ProjectMember>()
+                .FirstOrDefaultAsync(m => m.ProjectId == task.ProjectId && m.UserId == actorId);
+
+            if (projectMember == null || (projectMember.Role != "Owner" && projectMember.Role != "Admin"))
+            {
+                throw new UnauthorizedAccessException("Only project Admins or Owners can delete the task.");
+            }
+
+            _context.Tasks.Remove(task);
+            await _context.SaveChangesAsync();
         }
     }
 }

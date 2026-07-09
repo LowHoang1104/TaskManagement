@@ -24,6 +24,19 @@ namespace TaskApi.DTOs
             CreateMap<TaskCreateDto, TaskItem>();
             CreateMap<TaskUpdateDto, TaskItem>()
                 .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null)); // Ignore null values on update
+
+            // Comment mappings
+            CreateMap<Comment, CommentDto>()
+                .ForMember(dest => dest.UserFullName, opt => opt.MapFrom(src => src.User.FullName))
+                .ForMember(dest => dest.UserAvatarUrl, opt => opt.MapFrom(src => src.User.AvatarUrl));
+            CreateMap<CommentCreateDto, Comment>();
+
+            // Notification mappings
+            CreateMap<Notification, NotificationDto>();
+
+            // Attachment mappings
+            CreateMap<Attachment, AttachmentDto>()
+                .ForMember(dest => dest.UploaderFullName, opt => opt.MapFrom(src => src.UploadedBy.FullName));
         }
     }
 }

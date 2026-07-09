@@ -7,6 +7,22 @@ import '../network/auth_interceptor.dart';
 import '../network/dio_client.dart';
 import '../storage/local_storage.dart';
 import '../storage/secure_storage.dart';
+import '../../feature/domain/i_repositories/i_auth_repository.dart';
+import '../../feature/data/imp_repositories/auth_repository_imp.dart';
+import '../../feature/domain/i_repositories/i_workspace_repository.dart';
+import '../../feature/data/imp_repositories/workspace_repository_imp.dart';
+import '../../feature/domain/i_repositories/i_task_repository.dart';
+import '../../feature/data/imp_repositories/task_repository_imp.dart';
+import '../../feature/domain/i_repositories/i_project_repository.dart';
+import '../../feature/data/imp_repositories/project_repository_imp.dart';
+import '../../feature/domain/i_repositories/i_comment_repository.dart';
+import '../../feature/data/imp_repositories/comment_repository_imp.dart';
+import '../../feature/domain/i_repositories/i_attachment_repository.dart';
+import '../../feature/data/imp_repositories/attachment_repository_imp.dart';
+import '../../feature/domain/i_repositories/i_notification_repository.dart';
+import '../../feature/data/imp_repositories/notification_repository_imp.dart';
+import '../../feature/domain/i_repositories/i_dashboard_repository.dart';
+import '../../feature/data/imp_repositories/dashboard_repository_imp.dart';
 
 /// Global service locator instance.
 final sl = GetIt.instance;
@@ -49,27 +65,59 @@ Future<void> init() async {
   );
 
   // ─── Feature: Auth ────────────────────────────────────────────────────────
-  // TODO: Register auth repositories and use-cases here when implemented.
-  // Example:
-  // sl.registerLazySingleton<IAuthRepository>(
-  //   () => AuthRepositoryImpl(
-  //     remoteDataSource: AuthRemoteDataSource(sl<DioClient>().dio),
-  //     secureStorage: sl<SecureStorage>(),
-  //   ),
-  // );
-  // sl.registerLazySingleton(() => LoginUseCase(sl()));
-  // sl.registerLazySingleton(() => RegisterUseCase(sl()));
-  // sl.registerLazySingleton(() => LogoutUseCase(sl()));
+  sl.registerLazySingleton<IAuthRepository>(
+    () => AuthRepositoryImp(
+      dio: sl<DioClient>().dio,
+      secureStorage: sl<SecureStorage>(),
+    ),
+  );
 
   // ─── Feature: Workspace ───────────────────────────────────────────────────
-  // TODO: sl.registerLazySingleton<IWorkspaceRepository>(...)
+  sl.registerLazySingleton<IWorkspaceRepository>(
+    () => WorkspaceRepositoryImp(
+      dio: sl<DioClient>().dio,
+    ),
+  );
 
   // ─── Feature: Project ─────────────────────────────────────────────────────
-  // TODO: sl.registerLazySingleton<IProjectRepository>(...)
+  sl.registerLazySingleton<IProjectRepository>(
+    () => ProjectRepositoryImp(
+      dio: sl<DioClient>().dio,
+    ),
+  );
 
   // ─── Feature: Task ────────────────────────────────────────────────────────
-  // TODO: sl.registerLazySingleton<ITaskRepository>(...)
+  sl.registerLazySingleton<ITaskRepository>(
+    () => TaskRepositoryImp(
+      dio: sl<DioClient>().dio,
+    ),
+  );
 
-  // ─── Feature: Notification ───────────────────────────────────────────────
-  // TODO: sl.registerLazySingleton<INotificationRepository>(...)
+  // ─── Feature: Comment ─────────────────────────────────────────────────────
+  sl.registerLazySingleton<ICommentRepository>(
+    () => CommentRepositoryImp(
+      dio: sl<DioClient>().dio,
+    ),
+  );
+
+  // ─── Feature: Attachment ──────────────────────────────────────────────────
+  sl.registerLazySingleton<IAttachmentRepository>(
+    () => AttachmentRepositoryImp(
+      dio: sl<DioClient>().dio,
+    ),
+  );
+
+  // ─── Feature: Notification ────────────────────────────────────────────────
+  sl.registerLazySingleton<INotificationRepository>(
+    () => NotificationRepositoryImp(
+      sl<DioClient>().dio,
+    ),
+  );
+
+  // ─── Feature: Dashboard ───────────────────────────────────────────────────
+  sl.registerLazySingleton<IDashboardRepository>(
+    () => DashboardRepositoryImp(
+      sl<DioClient>().dio,
+    ),
+  );
 }

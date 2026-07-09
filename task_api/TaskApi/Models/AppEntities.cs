@@ -30,6 +30,7 @@ namespace TaskApi.Models
         public string OwnerId { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+        public bool IsDeleted { get; set; } = false;
 
         public User Owner { get; set; } = null!;
         public ICollection<WorkspaceMember> Members { get; set; } = new List<WorkspaceMember>();
@@ -67,7 +68,8 @@ namespace TaskApi.Models
     {
         public string ProjectId { get; set; } = string.Empty;
         public string UserId { get; set; } = string.Empty;
-        public string Role { get; set; } = string.Empty; // Manager, Member, Viewer
+        public string Role { get; set; } = string.Empty; // Owner, Admin, Member
+        public string Status { get; set; } = "Accepted"; // Pending, Accepted
         public DateTime JoinedAt { get; set; } = DateTime.UtcNow;
 
         public Project Project { get; set; } = null!;
@@ -140,14 +142,28 @@ namespace TaskApi.Models
         [Key]
         public string Id { get; set; } = Guid.NewGuid().ToString();
         public string TaskId { get; set; } = string.Empty;
-        public string FileName { get; set; } = string.Empty;
         public string FileUrl { get; set; } = string.Empty;
-        public int FileSize { get; set; } = 0;
+        public string FileName { get; set; } = string.Empty;
+        public long FileSize { get; set; }
         public string UploadedById { get; set; } = string.Empty;
         public DateTime UploadedAt { get; set; } = DateTime.UtcNow;
 
         public TaskItem Task { get; set; } = null!;
         public User UploadedBy { get; set; } = null!;
+    }
+
+    public class Notification
+    {
+        [Key]
+        public string Id { get; set; } = Guid.NewGuid().ToString();
+        public string UserId { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty; // Invite, Comment
+        public string Message { get; set; } = string.Empty;
+        public bool IsRead { get; set; } = false;
+        public string? RelatedId { get; set; } // ProjectId or TaskId
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        public User User { get; set; } = null!;
     }
 
     public class ChecklistItem

@@ -15,6 +15,7 @@ namespace TaskApi.Data
         public DbSet<TaskItem> Tasks { get; set; }
         public DbSet<Comment> Comments { get; set; }
         public DbSet<Attachment> Attachments { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
         public DbSet<ChecklistItem> ChecklistItems { get; set; }
         public DbSet<Tag> Tags { get; set; }
         public DbSet<TaskTag> TaskTags { get; set; }

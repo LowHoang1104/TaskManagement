@@ -20,7 +20,7 @@ namespace TaskApi.Services
         public async Task<IEnumerable<WorkspaceDto>> GetWorkspacesAsync(string userId)
         {
             var workspaces = await _context.Workspaces
-                .Where(w => w.Members.Any(m => m.UserId == userId))
+                .Where(w => w.Members.Any(m => m.UserId == userId) && !w.IsDeleted)
                 .ToListAsync();
 
             return _mapper.Map<IEnumerable<WorkspaceDto>>(workspaces);
@@ -42,6 +42,25 @@ namespace TaskApi.Services
             await _context.SaveChangesAsync();
 
             return _mapper.Map<WorkspaceDto>(workspace);
+        }
+
+        public async Task DeleteWorkspaceAsync(string id, string actorId)
+        {
+            var workspace = await _context.Workspaces.FindAsync(id);
+            if (workspace == null || workspace.IsDeleted)
+            {
+                throw new Exception("Workspace not found");
+            }
+
+            if (workspace.OwnerId != actorId)
+            {
+                throw new UnauthorizedAccessException("Only the workspace owner can delete the workspace.");
+            }
+
+            workspace.IsDeleted = true;
+            workspace.UpdatedAt = DateTime.UtcNow;
+            
+            await _context.SaveChangesAsync();
         }
     }
 }

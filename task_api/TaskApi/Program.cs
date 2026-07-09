@@ -22,6 +22,17 @@ namespace TaskApi
             });
 
             // Add services to the container.
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowAll",
+                    policy =>
+                    {
+                        policy.AllowAnyOrigin()
+                              .AllowAnyMethod()
+                              .AllowAnyHeader();
+                    });
+            });
+
             builder.Services.AddSignalR();
             
             builder.Services.AddDbContext<AppDbContext>(options =>
@@ -35,6 +46,10 @@ namespace TaskApi
             builder.Services.AddScoped<IWorkspaceService, WorkspaceService>();
             builder.Services.AddScoped<IProjectService, ProjectService>();
             builder.Services.AddScoped<ITaskService, TaskService>();
+            builder.Services.AddScoped<INotificationService, NotificationService>();
+            builder.Services.AddScoped<ICommentService, CommentService>();
+            builder.Services.AddScoped<IAttachmentService, AttachmentService>();
+            builder.Services.AddScoped<IDashboardService, DashboardService>();
 
             // JWT Auth
             var jwtSettings = builder.Configuration.GetSection("Jwt");
@@ -94,7 +109,12 @@ namespace TaskApi
                 app.UseSwaggerUI();
             }
 
+            // app.UseHttpsRedirection();
+            
+            app.UseCors("AllowAll");
+
             app.UseHttpsRedirection();
+            app.UseStaticFiles();
 
             app.UseAuthentication();
             app.UseAuthorization();

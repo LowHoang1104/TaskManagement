@@ -63,6 +63,7 @@ dependencies:
   signalr_netcore: ^1.4.4
   sentry_flutter: ^8.14.2
   fl_chart: ^1.2.0
+  timeago: ^3.7.1
 
 dev_dependencies:
   flutter_test:

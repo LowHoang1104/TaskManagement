@@ -4,6 +4,9 @@ class UserEntity {
   final String email;
   final String passwordHash;
   final String? avatarUrl;
+  final String? role;
+  final String? status;
+  final DateTime? joinedAt;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -13,6 +16,9 @@ class UserEntity {
     required this.email,
     required this.passwordHash,
     this.avatarUrl,
+    this.role,
+    this.status,
+    this.joinedAt,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -23,6 +29,9 @@ class UserEntity {
     String? email,
     String? passwordHash,
     String? avatarUrl,
+    String? role,
+    String? status,
+    DateTime? joinedAt,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -32,6 +41,9 @@ class UserEntity {
       email: email ?? this.email,
       passwordHash: passwordHash ?? this.passwordHash,
       avatarUrl: avatarUrl ?? this.avatarUrl,
+      role: role ?? this.role,
+      status: status ?? this.status,
+      joinedAt: joinedAt ?? this.joinedAt,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

@@ -1,18 +1,24 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../app/routes/app_routes.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
-
-class LoginScreen extends StatefulWidget {
+import '../../providers/auth_provider.dart';
+import '../../providers/dashboard_provider.dart';
+import '../../providers/workspace_provider.dart';
+import '../../providers/project_provider.dart';
+import '../../providers/task_provider.dart';
+import '../../providers/notification_provider.dart';
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
@@ -27,9 +33,29 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final authState = ref.watch(authNotifierProvider);
+
+    ref.listen<AuthState>(authNotifierProvider, (previous, next) {
+      if (next.error != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(next.error!), backgroundColor: Colors.red),
+        );
+      }
+      if (next.user != null) {
+        // Clear all cached global providers before navigating into the app
+        // This ensures the new user gets fresh data instead of the previous user's or a 401 cache
+        ref.invalidate(workspaceNotifierProvider);
+        ref.invalidate(projectNotifierProvider);
+        ref.invalidate(taskNotifierProvider);
+        ref.invalidate(notificationProvider);
+        ref.invalidate(dashboardProvider);
+
+        Navigator.pushReplacementNamed(context, AppRoutes.workspaceList);
+      }
+    });
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -70,7 +96,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.8),
+                          color: theme.colorScheme.surface.withValues(alpha: 0.8),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
@@ -86,7 +112,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       Text(
                         'Welcome\nBack!',
                         style: theme.textTheme.displaySmall?.copyWith(
-                          color: AppColors.grey900,
                           fontWeight: FontWeight.w800,
                           height: 1.1,
                         ),
@@ -142,22 +167,35 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: AppSizes.xl),
 
                   // Login Button
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.pushReplacementNamed(context, AppRoutes.workspaceList);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+                  SizedBox(
+                    height: 54,
+                    child: ElevatedButton(
+                      onPressed: authState.isLoading
+                          ? null
+                          : () {
+                              ref.read(authNotifierProvider.notifier).login(
+                                    _emailController.text.trim(),
+                                    _passwordController.text,
+                                  );
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+                        ),
+                        elevation: 0,
                       ),
-                      elevation: 0,
-                    ),
-                    child: const Text(
-                      'Log In',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      child: authState.isLoading
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+                            )
+                          : const Text(
+                              'Log In',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
                     ),
                   ).animate().fadeIn(delay: 1000.ms).scale(),
 
@@ -197,7 +235,6 @@ class _LoginScreenState extends State<LoginScreen> {
       obscureText: isPassword && _obscurePassword,
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: AppColors.grey400),
         prefixIcon: Icon(icon, color: AppColors.grey400),
         suffixIcon: isPassword
             ? IconButton(
@@ -212,16 +249,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 },
               )
             : null,
-        filled: true,
-        fillColor: AppColors.grey50,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSizes.radiusLg),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSizes.radiusLg),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
-        ),
       ),
     );
   }

@@ -1,16 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
-
-class RegisterScreen extends StatefulWidget {
+import '../../providers/auth_provider.dart';
+import '../../providers/dashboard_provider.dart';
+import '../../providers/workspace_provider.dart';
+import '../../providers/project_provider.dart';
+import '../../providers/task_provider.dart';
+import '../../providers/notification_provider.dart';
+class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
 
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
+class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -31,9 +37,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final authState = ref.watch(authNotifierProvider);
+
+    ref.listen<AuthState>(authNotifierProvider, (previous, next) {
+      if (next.error != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(next.error!), backgroundColor: Colors.red),
+        );
+      }
+      if (next.user != null) {
+        // Clear all cached global providers before navigating into the app
+        ref.invalidate(workspaceNotifierProvider);
+        ref.invalidate(projectNotifierProvider);
+        ref.invalidate(taskNotifierProvider);
+        ref.invalidate(notificationProvider);
+        ref.invalidate(dashboardProvider);
+
+        Navigator.pushNamedAndRemoveUntil(context, '/workspaces', (route) => false);
+      }
+    });
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -70,7 +95,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   left: AppSizes.md,
                   child: Container(
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.8),
+                      color: theme.colorScheme.surface.withValues(alpha: 0.8),
                       shape: BoxShape.circle,
                     ),
                     child: IconButton(
@@ -90,7 +115,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       Text(
                         'Join Us!',
                         style: theme.textTheme.displaySmall?.copyWith(
-                          color: AppColors.grey900,
                           fontWeight: FontWeight.w800,
                           height: 1.1,
                         ),
@@ -164,23 +188,42 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: AppSizes.xxl),
 
                   // Register Button
-                  ElevatedButton(
-                    onPressed: () {
-                      // Navigate to Workspace List directly after signup (Mock flow)
-                      Navigator.pushNamedAndRemoveUntil(context, '/workspaces', (route) => false);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+                  SizedBox(
+                    height: 54,
+                    child: ElevatedButton(
+                      onPressed: authState.isLoading
+                          ? null
+                          : () {
+                              if (_passwordController.text != _confirmPasswordController.text) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text("Passwords do not match"), backgroundColor: Colors.red),
+                                );
+                                return;
+                              }
+                              ref.read(authNotifierProvider.notifier).register(
+                                    _nameController.text.trim(),
+                                    _emailController.text.trim(),
+                                    _passwordController.text,
+                                  );
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+                        ),
+                        elevation: 0,
                       ),
-                      elevation: 0,
-                    ),
-                    child: const Text(
-                      'Sign Up',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      child: authState.isLoading
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+                            )
+                          : const Text(
+                              'Sign Up',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
                     ),
                   ).animate().fadeIn(delay: 900.ms).scale(),
 
@@ -218,18 +261,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       controller: controller,
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: AppColors.grey400),
         prefixIcon: Icon(icon, color: AppColors.grey400),
-        filled: true,
-        fillColor: AppColors.grey50,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSizes.radiusLg),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSizes.radiusLg),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
-        ),
       ),
     );
   }
@@ -246,7 +278,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       obscureText: isObscured,
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: AppColors.grey400),
         prefixIcon: const Icon(Icons.lock_outline_rounded, color: AppColors.grey400),
         suffixIcon: IconButton(
           icon: Icon(
@@ -254,16 +285,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
             color: AppColors.grey400,
           ),
           onPressed: onToggle,
-        ),
-        filled: true,
-        fillColor: AppColors.grey50,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSizes.radiusLg),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSizes.radiusLg),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
         ),
       ),
     );

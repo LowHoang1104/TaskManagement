@@ -37,9 +37,39 @@ namespace TaskApi.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateTask(string projectId, string id, TaskUpdateDto request)
         {
-            var task = await _taskService.UpdateTaskAsync(id, request);
-            if (task == null) return NotFound();
-            return Ok(task);
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            try
+            {
+                var task = await _taskService.UpdateTaskAsync(id, request, userId);
+                return Ok(task);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteTask(string projectId, string id)
+        {
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            try
+            {
+                await _taskService.DeleteTaskAsync(id, userId);
+                return Ok(new { message = "Task deleted successfully." });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(403, new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
     }
 }
