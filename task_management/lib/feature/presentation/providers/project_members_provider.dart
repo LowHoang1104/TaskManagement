@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../domain/entities/entities.dart';
-import '../../domain/i_repositories/i_project_repository.dart';
+import '../../application/i_services/i_project_service.dart';
 
 class ProjectMembersState {
   final bool isLoading;
@@ -36,7 +36,7 @@ class ProjectMembersNotifier extends StateNotifier<ProjectMembersState> {
 
   Future<void> fetchMembers() async {
     state = state.copyWith(isLoading: true, error: null);
-    final result = await sl<IProjectRepository>().getProjectMembers(projectId);
+    final result = await sl<IProjectService>().getProjectMembers(projectId);
     
     result.fold(
       (error) => state = state.copyWith(isLoading: false, error: error),
@@ -46,7 +46,7 @@ class ProjectMembersNotifier extends StateNotifier<ProjectMembersState> {
 
   Future<bool> inviteMember(String email) async {
     state = state.copyWith(isLoading: true, error: null);
-    final result = await sl<IProjectRepository>().inviteProjectMember(projectId, email);
+    final result = await sl<IProjectService>().inviteProjectMember(projectId, email);
     
     return result.fold(
       (error) {
@@ -65,7 +65,7 @@ class ProjectMembersNotifier extends StateNotifier<ProjectMembersState> {
 
   Future<bool> updateRole(String userId, String newRole) async {
     state = state.copyWith(isLoading: true, error: null);
-    final result = await sl<IProjectRepository>().updateProjectMemberRole(projectId, userId, newRole);
+    final result = await sl<IProjectService>().updateProjectMemberRole(projectId, userId, newRole);
     
     return result.fold(
       (error) {

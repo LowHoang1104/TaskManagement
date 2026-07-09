@@ -1,10 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/workspace_entity.dart';
-import '../../domain/i_repositories/i_workspace_repository.dart';
+import '../../application/i_services/i_workspace_service.dart';
 import '../../../core/di/injection_container.dart' as di;
 
-final workspaceRepositoryProvider = Provider<IWorkspaceRepository>((ref) {
-  return di.sl<IWorkspaceRepository>();
+final workspaceServiceProvider = Provider<IWorkspaceService>((ref) {
+  return di.sl<IWorkspaceService>();
 });
 
 class WorkspaceState {
@@ -32,16 +32,16 @@ class WorkspaceState {
 }
 
 class WorkspaceNotifier extends StateNotifier<WorkspaceState> {
-  final IWorkspaceRepository _repository;
+  final IWorkspaceService _service;
 
-  WorkspaceNotifier(this._repository) : super(WorkspaceState()) {
+  WorkspaceNotifier(this._service) : super(WorkspaceState()) {
     fetchWorkspaces();
   }
 
   Future<void> fetchWorkspaces() async {
     state = state.copyWith(isLoading: true, error: null);
     
-    final result = await _repository.getWorkspaces();
+    final result = await _service.getWorkspaces();
     
     state = result.fold(
       (error) => state.copyWith(isLoading: false, error: error),
@@ -50,7 +50,7 @@ class WorkspaceNotifier extends StateNotifier<WorkspaceState> {
   }
 
   Future<void> createWorkspace(String name, String description) async {
-    final result = await _repository.createWorkspace(name, description);
+    final result = await _service.createWorkspace(name, description);
     result.fold(
       (error) => state = state.copyWith(error: error),
       (newWorkspace) => state = state.copyWith(workspaces: [...state.workspaces, newWorkspace]),
@@ -59,7 +59,7 @@ class WorkspaceNotifier extends StateNotifier<WorkspaceState> {
 
   Future<bool> deleteWorkspace(String id) async {
     state = state.copyWith(isLoading: true, error: null);
-    final result = await _repository.deleteWorkspace(id);
+    final result = await _service.deleteWorkspace(id);
     
     return result.fold(
       (error) {
@@ -76,5 +76,5 @@ class WorkspaceNotifier extends StateNotifier<WorkspaceState> {
 }
 
 final workspaceNotifierProvider = StateNotifierProvider<WorkspaceNotifier, WorkspaceState>((ref) {
-  return WorkspaceNotifier(ref.watch(workspaceRepositoryProvider));
+  return WorkspaceNotifier(ref.watch(workspaceServiceProvider));
 });

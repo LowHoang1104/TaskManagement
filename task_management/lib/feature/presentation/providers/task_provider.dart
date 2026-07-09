@@ -1,11 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/task_entity.dart';
 import '../../domain/entities/enums.dart';
-import '../../domain/i_repositories/i_task_repository.dart';
+import '../../application/i_services/i_task_service.dart';
 import '../../../core/di/injection_container.dart' as di;
 
-final taskRepositoryProvider = Provider<ITaskRepository>((ref) {
-  return di.sl<ITaskRepository>();
+final taskServiceProvider = Provider<ITaskService>((ref) {
+  return di.sl<ITaskService>();
 });
 
 class TaskState {
@@ -33,15 +33,15 @@ class TaskState {
 }
 
 class TaskNotifier extends StateNotifier<TaskState> {
-  final ITaskRepository _repository;
+  final ITaskService _service;
   final String projectId;
 
-  TaskNotifier(this._repository, this.projectId) : super(TaskState());
+  TaskNotifier(this._service, this.projectId) : super(TaskState());
 
   Future<void> fetchTasks() async {
     state = state.copyWith(isLoading: true, error: null);
     
-    final result = await _repository.getTasks(projectId);
+    final result = await _service.getTasks(projectId);
     
     state = result.fold(
       (error) => state.copyWith(isLoading: false, error: error),
@@ -61,7 +61,7 @@ class TaskNotifier extends StateNotifier<TaskState> {
     state = state.copyWith(tasks: updatedTasks);
     
     // Call API in background
-    final result = await _repository.updateTaskStatus(projectId, taskId, newStatus);
+    final result = await _service.updateTaskStatus(projectId, taskId, newStatus);
     result.fold(
       (error) {
         // Revert on error
@@ -74,7 +74,7 @@ class TaskNotifier extends StateNotifier<TaskState> {
   }
 
   Future<void> createTask(String title, String description, TaskStatus status, TaskPriority priority) async {
-    final result = await _repository.createTask(projectId, title, description, status, priority);
+    final result = await _service.createTask(projectId, title, description, status, priority);
     result.fold(
       (error) => state = state.copyWith(error: error),
       (newTask) => state = state.copyWith(tasks: [...state.tasks, newTask]),
@@ -83,7 +83,7 @@ class TaskNotifier extends StateNotifier<TaskState> {
 
   Future<bool> deleteTask(String taskId) async {
     state = state.copyWith(isLoading: true, error: null);
-    final result = await _repository.deleteTask(projectId, taskId);
+    final result = await _service.deleteTask(projectId, taskId);
     
     return result.fold(
       (error) {
@@ -101,7 +101,7 @@ class TaskNotifier extends StateNotifier<TaskState> {
 
 // Pass projectId dynamically
 final taskNotifierProvider = StateNotifierProvider.family<TaskNotifier, TaskState, String>((ref, projectId) {
-  final notifier = TaskNotifier(ref.watch(taskRepositoryProvider), projectId);
+  final notifier = TaskNotifier(ref.watch(taskServiceProvider), projectId);
   notifier.fetchTasks();
   return notifier;
 });

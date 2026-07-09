@@ -24,6 +24,23 @@ import '../../feature/data/imp_repositories/notification_repository_imp.dart';
 import '../../feature/domain/i_repositories/i_dashboard_repository.dart';
 import '../../feature/data/imp_repositories/dashboard_repository_imp.dart';
 
+import '../../feature/application/i_services/i_auth_service.dart';
+import '../../feature/application/services/auth_service.dart';
+import '../../feature/application/i_services/i_workspace_service.dart';
+import '../../feature/application/services/workspace_service.dart';
+import '../../feature/application/i_services/i_task_service.dart';
+import '../../feature/application/services/task_service.dart';
+import '../../feature/application/i_services/i_project_service.dart';
+import '../../feature/application/services/project_service.dart';
+import '../../feature/application/i_services/i_comment_service.dart';
+import '../../feature/application/services/comment_service.dart';
+import '../../feature/application/i_services/i_attachment_service.dart';
+import '../../feature/application/services/attachment_service.dart';
+import '../../feature/application/i_services/i_notification_service.dart';
+import '../../feature/application/services/notification_service.dart';
+import '../../feature/application/i_services/i_dashboard_service.dart';
+import '../../feature/application/services/dashboard_service.dart';
+
 /// Global service locator instance.
 final sl = GetIt.instance;
 
@@ -71,6 +88,7 @@ Future<void> init() async {
       secureStorage: sl<SecureStorage>(),
     ),
   );
+  sl.registerLazySingleton<IAuthService>(() => AuthService(sl<IAuthRepository>()));
 
   // ─── Feature: Workspace ───────────────────────────────────────────────────
   sl.registerLazySingleton<IWorkspaceRepository>(
@@ -78,6 +96,7 @@ Future<void> init() async {
       dio: sl<DioClient>().dio,
     ),
   );
+  sl.registerLazySingleton<IWorkspaceService>(() => WorkspaceService(sl<IWorkspaceRepository>()));
 
   // ─── Feature: Project ─────────────────────────────────────────────────────
   sl.registerLazySingleton<IProjectRepository>(
@@ -85,6 +104,7 @@ Future<void> init() async {
       dio: sl<DioClient>().dio,
     ),
   );
+  sl.registerLazySingleton<IProjectService>(() => ProjectService(sl<IProjectRepository>()));
 
   // ─── Feature: Task ────────────────────────────────────────────────────────
   sl.registerLazySingleton<ITaskRepository>(
@@ -92,6 +112,7 @@ Future<void> init() async {
       dio: sl<DioClient>().dio,
     ),
   );
+  sl.registerLazySingleton<ITaskService>(() => TaskService(sl<ITaskRepository>()));
 
   // ─── Feature: Comment ─────────────────────────────────────────────────────
   sl.registerLazySingleton<ICommentRepository>(
@@ -99,6 +120,7 @@ Future<void> init() async {
       dio: sl<DioClient>().dio,
     ),
   );
+  sl.registerLazySingleton<ICommentService>(() => CommentService(sl<ICommentRepository>()));
 
   // ─── Feature: Attachment ──────────────────────────────────────────────────
   sl.registerLazySingleton<IAttachmentRepository>(
@@ -106,6 +128,7 @@ Future<void> init() async {
       dio: sl<DioClient>().dio,
     ),
   );
+  sl.registerLazySingleton<IAttachmentService>(() => AttachmentService(sl<IAttachmentRepository>()));
 
   // ─── Feature: Notification ────────────────────────────────────────────────
   sl.registerLazySingleton<INotificationRepository>(
@@ -113,6 +136,7 @@ Future<void> init() async {
       sl<DioClient>().dio,
     ),
   );
+  sl.registerLazySingleton<INotificationService>(() => NotificationService(sl<INotificationRepository>()));
 
   // ─── Feature: Dashboard ───────────────────────────────────────────────────
   sl.registerLazySingleton<IDashboardRepository>(
@@ -120,4 +144,5 @@ Future<void> init() async {
       sl<DioClient>().dio,
     ),
   );
+  sl.registerLazySingleton<IDashboardService>(() => DashboardService(sl<IDashboardRepository>()));
 }

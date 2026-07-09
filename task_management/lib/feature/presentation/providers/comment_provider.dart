@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../domain/i_repositories/i_comment_repository.dart';
+import '../../application/i_services/i_comment_service.dart';
 import '../../../core/di/injection_container.dart' as di;
 
-final commentRepositoryProvider = Provider<ICommentRepository>((ref) {
-  return di.sl<ICommentRepository>();
+final commentServiceProvider = Provider<ICommentService>((ref) {
+  return di.sl<ICommentService>();
 });
 
 class CommentState {
@@ -31,14 +31,14 @@ class CommentState {
 }
 
 class CommentNotifier extends StateNotifier<CommentState> {
-  final ICommentRepository _repository;
+  final ICommentService _service;
   final String taskId;
 
-  CommentNotifier(this._repository, this.taskId) : super(CommentState());
+  CommentNotifier(this._service, this.taskId) : super(CommentState());
 
   Future<void> fetchComments() async {
     state = state.copyWith(isLoading: true, error: null);
-    final result = await _repository.getComments(taskId);
+    final result = await _service.getComments(taskId);
     state = result.fold(
       (error) => state.copyWith(isLoading: false, error: error),
       (comments) => state.copyWith(isLoading: false, comments: comments),
@@ -46,7 +46,7 @@ class CommentNotifier extends StateNotifier<CommentState> {
   }
 
   Future<void> addComment(String content) async {
-    final result = await _repository.createComment(taskId, content);
+    final result = await _service.createComment(taskId, content);
     result.fold(
       (error) => state = state.copyWith(error: error),
       (newComment) => state = state.copyWith(comments: [...state.comments, newComment]),
@@ -55,7 +55,7 @@ class CommentNotifier extends StateNotifier<CommentState> {
 }
 
 final commentNotifierProvider = StateNotifierProvider.family<CommentNotifier, CommentState, String>((ref, taskId) {
-  final notifier = CommentNotifier(ref.watch(commentRepositoryProvider), taskId);
+  final notifier = CommentNotifier(ref.watch(commentServiceProvider), taskId);
   notifier.fetchComments();
   return notifier;
 });

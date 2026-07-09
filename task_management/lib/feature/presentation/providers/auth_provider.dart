@@ -1,10 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/user_entity.dart';
-import '../../domain/i_repositories/i_auth_repository.dart';
+import '../../application/i_services/i_auth_service.dart';
 import '../../../core/di/injection_container.dart' as di;
 
-final authRepositoryProvider = Provider<IAuthRepository>((ref) {
-  return di.sl<IAuthRepository>();
+final authServiceProvider = Provider<IAuthService>((ref) {
+  return di.sl<IAuthService>();
 });
 
 class AuthState {
@@ -24,14 +24,14 @@ class AuthState {
 }
 
 class AuthNotifier extends StateNotifier<AuthState> {
-  final IAuthRepository _repository;
+  final IAuthService _service;
 
-  AuthNotifier(this._repository) : super(AuthState());
+  AuthNotifier(this._service) : super(AuthState());
 
   Future<bool> login(String email, String password) async {
     state = state.copyWith(isLoading: true, error: null);
     
-    final result = await _repository.login(email, password);
+    final result = await _service.login(email, password);
     
     return result.fold(
       (error) {
@@ -48,7 +48,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<bool> register(String fullName, String email, String password) async {
     state = state.copyWith(isLoading: true, error: null);
     
-    final result = await _repository.register(fullName, email, password);
+    final result = await _service.register(fullName, email, password);
     
     return result.fold(
       (error) {
@@ -63,11 +63,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> logout() async {
-    await _repository.logout();
+    await _service.logout();
     state = AuthState();
   }
 }
 
 final authNotifierProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
-  return AuthNotifier(ref.watch(authRepositoryProvider));
+  return AuthNotifier(ref.watch(authServiceProvider));
 });

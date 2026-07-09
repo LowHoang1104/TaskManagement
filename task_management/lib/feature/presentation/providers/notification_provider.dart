@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../domain/entities/notification_entity.dart';
-import '../../domain/i_repositories/i_notification_repository.dart';
-import '../../domain/i_repositories/i_project_repository.dart';
+import '../../application/i_services/i_notification_service.dart';
+import '../../application/i_services/i_project_service.dart';
 
 class NotificationState {
   final bool isLoading;
@@ -37,7 +37,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
 
   Future<void> fetchNotifications() async {
     state = state.copyWith(isLoading: true, error: null);
-    final result = await sl<INotificationRepository>().getMyNotifications();
+    final result = await sl<INotificationService>().getMyNotifications();
 
     result.fold(
       (error) => state = state.copyWith(isLoading: false, error: error),
@@ -46,7 +46,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
   }
 
   Future<void> markAsRead(String id) async {
-    final result = await sl<INotificationRepository>().markAsRead(id);
+    final result = await sl<INotificationService>().markAsRead(id);
     result.fold(
       (error) => state = state.copyWith(error: error),
       (updated) {
@@ -58,7 +58,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
 
   Future<bool> acceptProjectInvite(String projectId, String notificationId) async {
     state = state.copyWith(isLoading: true);
-    final result = await sl<IProjectRepository>().acceptProjectInvitation(projectId);
+    final result = await sl<IProjectService>().acceptProjectInvitation(projectId);
     
     return result.fold(
       (error) {
@@ -76,7 +76,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
 
   Future<bool> declineProjectInvite(String projectId, String notificationId) async {
     state = state.copyWith(isLoading: true);
-    final result = await sl<IProjectRepository>().declineProjectInvitation(projectId);
+    final result = await sl<IProjectService>().declineProjectInvitation(projectId);
     
     return result.fold(
       (error) {

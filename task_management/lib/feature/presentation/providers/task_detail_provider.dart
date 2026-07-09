@@ -2,9 +2,9 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/di/injection_container.dart';
 import '../../domain/entities/entities.dart';
-import '../../domain/i_repositories/i_task_repository.dart';
-import '../../domain/i_repositories/i_comment_repository.dart';
-import '../../domain/i_repositories/i_attachment_repository.dart';
+import '../../application/i_services/i_task_service.dart';
+import '../../application/i_services/i_comment_service.dart';
+import '../../application/i_services/i_attachment_service.dart';
 
 class TaskDetailState {
   final TaskEntity task;
@@ -39,9 +39,9 @@ class TaskDetailState {
 }
 
 class TaskDetailNotifier extends StateNotifier<TaskDetailState> {
-  final ITaskRepository _taskRepository;
-  final ICommentRepository _commentRepository;
-  final IAttachmentRepository _attachmentRepository;
+  final ITaskService _taskRepository;
+  final ICommentService _commentRepository;
+  final IAttachmentService _attachmentRepository;
   final String projectId;
   final String taskId;
 
@@ -143,8 +143,8 @@ final taskDetailProvider = StateNotifierProvider.family<TaskDetailNotifier, Task
     initialTask.projectId,
     initialTask.id,
     initialTask,
-    sl<ITaskRepository>(),
-    sl<ICommentRepository>(),
-    sl<IAttachmentRepository>(),
+    sl<ITaskService>(),
+    sl<ICommentService>(),
+    sl<IAttachmentService>(),
   );
 });

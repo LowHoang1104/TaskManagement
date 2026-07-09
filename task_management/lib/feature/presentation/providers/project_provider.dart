@@ -1,10 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/project_entity.dart';
-import '../../domain/i_repositories/i_project_repository.dart';
+import '../../application/i_services/i_project_service.dart';
 import '../../../core/di/injection_container.dart' as di;
 
-final projectRepositoryProvider = Provider<IProjectRepository>((ref) {
-  return di.sl<IProjectRepository>();
+final projectServiceProvider = Provider<IProjectService>((ref) {
+  return di.sl<IProjectService>();
 });
 
 class ProjectState {
@@ -32,14 +32,14 @@ class ProjectState {
 }
 
 class ProjectNotifier extends StateNotifier<ProjectState> {
-  final IProjectRepository _repository;
+  final IProjectService _service;
 
-  ProjectNotifier(this._repository) : super(ProjectState());
+  ProjectNotifier(this._service) : super(ProjectState());
 
   Future<void> fetchProjects(String workspaceId) async {
     state = state.copyWith(isLoading: true, error: null);
     
-    final result = await _repository.getProjects(workspaceId);
+    final result = await _service.getProjects(workspaceId);
     
     state = result.fold(
       (error) => state.copyWith(isLoading: false, error: error),
@@ -48,7 +48,7 @@ class ProjectNotifier extends StateNotifier<ProjectState> {
   }
 
   Future<void> createProject(String workspaceId, String name, String description) async {
-    final result = await _repository.createProject(workspaceId, name, description);
+    final result = await _service.createProject(workspaceId, name, description);
     result.fold(
       (error) => state = state.copyWith(error: error),
       (newProject) => state = state.copyWith(projects: [...state.projects, newProject]),
@@ -57,7 +57,7 @@ class ProjectNotifier extends StateNotifier<ProjectState> {
 
   Future<bool> deleteProject(String workspaceId, String id) async {
     state = state.copyWith(isLoading: true, error: null);
-    final result = await _repository.deleteProject(workspaceId, id);
+    final result = await _service.deleteProject(workspaceId, id);
     
     return result.fold(
       (error) {
@@ -74,7 +74,7 @@ class ProjectNotifier extends StateNotifier<ProjectState> {
 
   Future<bool> leaveProject(String id) async {
     state = state.copyWith(isLoading: true, error: null);
-    final result = await _repository.leaveProject(id);
+    final result = await _service.leaveProject(id);
     
     return result.fold(
       (error) {
@@ -91,7 +91,7 @@ class ProjectNotifier extends StateNotifier<ProjectState> {
 }
 
 final projectNotifierProvider = StateNotifierProvider.family<ProjectNotifier, ProjectState, String>((ref, workspaceId) {
-  final notifier = ProjectNotifier(ref.watch(projectRepositoryProvider));
+  final notifier = ProjectNotifier(ref.watch(projectServiceProvider));
   notifier.fetchProjects(workspaceId);
   return notifier;
 });
