@@ -8,6 +8,9 @@ import '../../../../core/utils/date_extensions.dart';
 import '../../../domain/entities/entities.dart';
 import '../../providers/task_detail_provider.dart';
 import '../../providers/task_provider.dart';
+import '../../providers/task_dependencies_provider.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/project_members_provider.dart';
 
 class TaskDetailScreen extends ConsumerStatefulWidget {
   final TaskEntity task;
@@ -34,6 +37,12 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
     final task = taskState.task;
     final notifier = ref.read(taskDetailProvider(widget.task).notifier);
 
+    Color statusColor = AppColors.primary;
+    if (task.status == TaskStatus.todo) statusColor = AppColors.grey400;
+    if (task.status == TaskStatus.doing) statusColor = Colors.blue;
+    if (task.status == TaskStatus.review) statusColor = Colors.orange;
+    if (task.status == TaskStatus.done) statusColor = Colors.green;
+
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       body: Stack(
@@ -44,7 +53,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                 expandedHeight: 250,
                 floating: false,
                 pinned: true,
-                backgroundColor: AppColors.primary,
+                backgroundColor: statusColor,
                 elevation: 0,
                 leading: IconButton(
                   icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
@@ -105,11 +114,12 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                     fit: StackFit.expand,
                     children: [
                       Container(
-                        decoration: const BoxDecoration(
+                        decoration: BoxDecoration(
                           gradient: LinearGradient(
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
-                            colors: [Color(0xFFD1FAE5), Color(0xFFFEF3C7)],
+                            colors: [statusColor.withValues(alpha: 0.6), statusColor.withValues(alpha: 0.2), theme.colorScheme.surface],
+                            stops: const [0.0, 0.5, 1.0],
                           ),
                         ),
                       ),
@@ -170,7 +180,16 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                         ),
                         child: Column(
                           children: [
-                            _buildGridRow('Assignee', const Text('Unassigned'), 'Reporter', const Text('Reporter'), theme),
+                            _buildGridRow(
+                              'Assignee', 
+                              InkWell(
+                                onTap: () => _showAssigneeDialog(context, task, ref),
+                                child: Text(task.assigneeName ?? 'Unassigned', style: const TextStyle(decoration: TextDecoration.underline, color: AppColors.primary)),
+                              ), 
+                              'Reporter', 
+                              Text(task.reporterName ?? 'Unknown'), 
+                              theme
+                            ),
                             const Padding(padding: EdgeInsets.symmetric(vertical: AppSizes.md), child: Divider(height: 1)),
                             _buildGridRow('Priority', _buildPriorityBadge(task.priority, theme), 'Due Date', _buildDateBadge(task.deadline, theme), theme),
                           ],
@@ -187,6 +206,80 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                         style: theme.textTheme.bodyMedium?.copyWith(height: 1.6),
                       ).animate().fadeIn(delay: 300.ms),
 
+                      const SizedBox(height: AppSizes.xxl),
+
+                      // Dependencies
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Dependencies', style: theme.textTheme.titleMedium).animate().fadeIn(delay: 350.ms),
+                          TextButton.icon(
+                            onPressed: () => _showAddDependencyDialog(context, task, ref),
+                            icon: const Icon(Icons.add_link_rounded, size: 18),
+                            label: const Text('Add'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppSizes.xs),
+                      Consumer(
+                        builder: (context, ref, child) {
+                          final depState = ref.watch(taskDependenciesProvider(task.id));
+                          if (depState.isLoading && depState.dependencies.isEmpty) {
+                            return const Center(child: CircularProgressIndicator());
+                          }
+                          if (depState.dependencies.isEmpty) {
+                            return const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 8.0),
+                              child: Text('No dependencies', style: TextStyle(color: AppColors.grey400)),
+                            );
+                          }
+                          return Column(
+                            children: depState.dependencies.map((dep) => Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.surface,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: theme.dividerColor),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primary.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      dep.dependencyType,
+                                      style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 12),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text('Blocks this task', style: theme.textTheme.labelSmall?.copyWith(color: AppColors.grey600)),
+                                        Text(dep.predecessorTaskTitle, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+                                      ],
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.close_rounded, color: AppColors.grey400, size: 20),
+                                    onPressed: () async {
+                                      final success = await ref.read(taskDependenciesProvider(task.id).notifier).setDependency(dep.predecessorTaskId, 'None');
+                                      if (success && context.mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Dependency removed')));
+                                      }
+                                    },
+                                  ),
+                                ],
+                              ),
+                            )).toList(),
+                          );
+                        },
+                      ),
                       const SizedBox(height: AppSizes.xxl),
 
                       // Attachments
@@ -328,35 +421,53 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
   }
 
   Widget _buildPriorityBadge(TaskPriority priority, ThemeData theme) {
-    Color c = AppColors.grey600;
+    Color c = AppColors.info;
     String t = 'Normal';
-    IconData icon = Icons.circle;
+    IconData icon = Icons.keyboard_arrow_down_rounded;
+    
+    if (priority == TaskPriority.low) { c = AppColors.success; t = 'Low'; icon = Icons.keyboard_double_arrow_down_rounded; }
     if (priority == TaskPriority.high) { c = Colors.orange; t = 'High'; icon = Icons.keyboard_arrow_up_rounded; }
     if (priority == TaskPriority.critical) { c = AppColors.error; t = 'Critical'; icon = Icons.keyboard_double_arrow_up_rounded; }
 
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 16, color: c),
-        const SizedBox(width: 4),
-        Text(t, style: theme.textTheme.bodyMedium?.copyWith(color: c, fontWeight: FontWeight.w600)),
-      ],
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: c.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: c),
+          const SizedBox(width: 4),
+          Text(t.toUpperCase(), style: theme.textTheme.labelSmall?.copyWith(color: c, fontWeight: FontWeight.bold)),
+        ],
+      ),
     );
   }
 
   Widget _buildDateBadge(DateTime? date, ThemeData theme) {
     if (date == null) return Text('No due date', style: theme.textTheme.bodyMedium);
     final isOverdue = date.isOverdue;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(Icons.calendar_today_rounded, size: 14, color: isOverdue ? AppColors.error : AppColors.grey800),
-        const SizedBox(width: 6),
-        Text(date.displayDate, style: theme.textTheme.bodyMedium?.copyWith(
-          color: isOverdue ? AppColors.error : AppColors.grey800,
-          fontWeight: isOverdue ? FontWeight.bold : FontWeight.w500,
-        )),
-      ],
+    final c = isOverdue ? AppColors.error : AppColors.grey600;
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: c.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.calendar_today_rounded, size: 14, color: c),
+          const SizedBox(width: 6),
+          Text(date.displayDate, style: theme.textTheme.labelSmall?.copyWith(
+            color: c,
+            fontWeight: FontWeight.bold,
+          )),
+        ],
+      ),
     );
   }
 
@@ -426,6 +537,83 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
     );
   }
 
+  void _showAddDependencyDialog(BuildContext context, TaskEntity currentTask, WidgetRef ref) {
+    // Note: To show a list of tasks to depend on, we should fetch the tasks of the current project.
+    // We already have them in taskNotifierProvider(currentTask.projectId).
+    final projectTasks = ref.read(taskNotifierProvider(currentTask.projectId)).tasks;
+    
+    // Filter out current task
+    final availableTasks = projectTasks.where((t) => t.id != currentTask.id).toList();
+
+    String? selectedTaskId;
+    String selectedType = 'FS';
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Add Dependency'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Select Task:'),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    isExpanded: true,
+                    value: selectedTaskId,
+                    hint: const Text('Select a task'),
+                    items: availableTasks.map((t) => DropdownMenuItem(
+                      value: t.id,
+                      child: Text(t.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+                    )).toList(),
+                    onChanged: (v) => setState(() => selectedTaskId = v),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('Dependency Type:'),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    value: selectedType,
+                    items: const [
+                      DropdownMenuItem(value: 'FS', child: Text('Finish to Start (FS)')),
+                      DropdownMenuItem(value: 'SS', child: Text('Start to Start (SS)')),
+                      DropdownMenuItem(value: 'FF', child: Text('Finish to Finish (FF)')),
+                      DropdownMenuItem(value: 'SF', child: Text('Start to Finish (SF)')),
+                    ],
+                    onChanged: (v) => setState(() => selectedType = v!),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    if (selectedTaskId != null) {
+                      final success = await ref.read(taskDependenciesProvider(currentTask.id).notifier).setDependency(selectedTaskId!, selectedType);
+                      if (success && ctx.mounted) {
+                        Navigator.pop(ctx);
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Dependency added successfully')));
+                      } else if (ctx.mounted) {
+                        final error = ref.read(taskDependenciesProvider(currentTask.id)).error;
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error ?? 'Failed to add dependency')));
+                      }
+                    }
+                  },
+                  child: const Text('Save'),
+                ),
+              ],
+            );
+          }
+        );
+      },
+    );
+  }
+
   void _showEditTaskDialog(BuildContext context, TaskEntity task, TaskDetailNotifier notifier) {
     final titleController = TextEditingController(text: task.title);
     final descController = TextEditingController(text: task.description);
@@ -486,6 +674,69 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
               ],
             );
           },
+        );
+      },
+    );
+  }
+
+  void _showAssigneeDialog(BuildContext context, TaskEntity currentTask, WidgetRef ref) {
+    final theme = Theme.of(context);
+    
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return Consumer(
+          builder: (context, ref, child) {
+            final membersState = ref.watch(projectMembersProvider(currentTask.projectId));
+            
+            return AlertDialog(
+              backgroundColor: theme.colorScheme.surface,
+              title: Text('Assign Task', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: membersState.isLoading && membersState.members.isEmpty
+                    ? const Center(child: CircularProgressIndicator())
+                    : ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: membersState.members.length + 1,
+                        itemBuilder: (context, index) {
+                          if (index == 0) {
+                            return ListTile(
+                              leading: const CircleAvatar(backgroundColor: Colors.grey, child: Icon(Icons.person_off, color: Colors.white)),
+                              title: const Text('Unassigned'),
+                              selected: currentTask.assigneeId == null,
+                              onTap: () {
+                                ref.read(taskDetailProvider(widget.task).notifier).updateTaskAssignee(null, ref);
+                                Navigator.pop(ctx);
+                              },
+                            );
+                          }
+                          final member = membersState.members[index - 1];
+                          return ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: AppColors.primary,
+                              backgroundImage: member.avatarUrl != null ? NetworkImage(member.avatarUrl!) : null,
+                              child: member.avatarUrl == null ? Text(member.fullName[0].toUpperCase(), style: const TextStyle(color: Colors.white)) : null,
+                            ),
+                            title: Text(member.fullName),
+                            subtitle: Text(member.email, style: theme.textTheme.labelSmall),
+                            selected: currentTask.assigneeId == member.id,
+                            onTap: () {
+                              ref.read(taskDetailProvider(widget.task).notifier).updateTaskAssignee(member.id, ref);
+                              Navigator.pop(ctx);
+                            },
+                          );
+                        },
+                      ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Cancel'),
+                ),
+              ],
+            );
+          }
         );
       },
     );

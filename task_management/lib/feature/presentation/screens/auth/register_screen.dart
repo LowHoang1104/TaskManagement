@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import '../../../../app/routes/app_routes.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../providers/auth_provider.dart';
@@ -59,193 +60,155 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Top Illustration & Branding
-            Stack(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFFEF3C7), Color(0xFFFFEDD5), Color(0xFFFDE68A)],
+            stops: [0.0, 0.5, 1.0],
+          ),
+        ),
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(AppSizes.xl),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Fresh vibrant gradient background
-                Container(
-                  height: 320,
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topRight,
-                      end: Alignment.bottomLeft,
-                      colors: [Color(0xFFFEF3C7), Color(0xFFFFEDD5)], // Soft amber/orange tone
-                    ),
+                // Logo & Title
+                const Icon(Icons.check_circle_outline_rounded, size: 60, color: AppColors.primary)
+                    .animate().scale(delay: 200.ms, duration: 400.ms, curve: Curves.easeOutBack),
+                const SizedBox(height: AppSizes.md),
+                Text(
+                  'TaskFlow',
+                  style: theme.textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.primaryDark,
+                    letterSpacing: -1,
                   ),
-                ),
-                
-                // Generated 3D Illustration
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  child: Image.asset(
-                    'assets/images/register_illustration.png',
-                    height: 320,
-                    fit: BoxFit.cover,
-                  ),
-                ),
+                ).animate().fadeIn(delay: 300.ms).slideY(begin: -0.2),
+                const SizedBox(height: AppSizes.xxl),
 
-                // Back button
-                Positioned(
-                  top: 50,
-                  left: AppSizes.md,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surface.withValues(alpha: 0.8),
-                      shape: BoxShape.circle,
-                    ),
-                    child: IconButton(
-                      icon: const Icon(Icons.arrow_back_rounded, color: AppColors.grey800),
-                      onPressed: () => Navigator.pop(context),
-                    ),
+                // Glass Card
+                Container(
+                  padding: const EdgeInsets.all(AppSizes.xl),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.8),
+                    borderRadius: BorderRadius.circular(AppSizes.radiusXl),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 1.5),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                        blurRadius: 40,
+                        offset: const Offset(0, 20),
+                      ),
+                    ],
                   ),
-                ).animate().fadeIn(),
-                
-                // Overlay text
-                Positioned(
-                  bottom: AppSizes.xl,
-                  left: AppSizes.xl,
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text(
-                        'Join Us!',
-                        style: theme.textTheme.displaySmall?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          height: 1.1,
+                        'Create Account',
+                        style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      ).animate().fadeIn(delay: 400.ms),
+                      const SizedBox(height: AppSizes.md),
+
+                      _buildTextField(
+                        controller: _nameController,
+                        label: 'Full Name',
+                        icon: Icons.person_outline_rounded,
+                        theme: theme,
+                      ).animate().fadeIn(delay: 500.ms).slideX(begin: -0.05),
+                      const SizedBox(height: AppSizes.md),
+
+                      _buildTextField(
+                        controller: _emailController,
+                        label: 'Email Address',
+                        icon: Icons.email_outlined,
+                        theme: theme,
+                      ).animate().fadeIn(delay: 600.ms).slideX(begin: -0.05),
+                      const SizedBox(height: AppSizes.md),
+
+                      _buildTextField(
+                        controller: _passwordController,
+                        label: 'Password',
+                        icon: Icons.lock_outline_rounded,
+                        isPassword: true,
+                        isConfirm: false,
+                        theme: theme,
+                      ).animate().fadeIn(delay: 700.ms).slideX(begin: -0.05),
+                      const SizedBox(height: AppSizes.md),
+
+                      _buildTextField(
+                        controller: _confirmPasswordController,
+                        label: 'Confirm Password',
+                        icon: Icons.lock_outline_rounded,
+                        isPassword: true,
+                        isConfirm: true,
+                        theme: theme,
+                      ).animate().fadeIn(delay: 800.ms).slideX(begin: -0.05),
+                      const SizedBox(height: AppSizes.xl),
+
+                      // Register Button
+                      SizedBox(
+                        height: 56,
+                        child: ElevatedButton(
+                          onPressed: authState.isLoading
+                              ? null
+                              : () {
+                                  if (_passwordController.text != _confirmPasswordController.text) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Passwords do not match'), backgroundColor: Colors.red),
+                                    );
+                                    return;
+                                  }
+                                  ref.read(authNotifierProvider.notifier).register(
+                                        _nameController.text.trim(),
+                                        _emailController.text.trim(),
+                                        _passwordController.text,
+                                      );
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+                            ),
+                            elevation: 5,
+                            shadowColor: AppColors.primary.withValues(alpha: 0.5),
+                          ),
+                          child: authState.isLoading
+                              ? const SizedBox(
+                                  height: 24,
+                                  width: 24,
+                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+                                )
+                              : const Text(
+                                  'Sign Up',
+                                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                ),
                         ),
-                      ).animate().fadeIn(delay: 200.ms).slideX(),
+                      ).animate().fadeIn(delay: 900.ms).scale(),
                     ],
                   ),
                 ),
+                
+                const SizedBox(height: AppSizes.xl),
+                // Login prompt
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text("Already have an account?", style: TextStyle(color: AppColors.grey600)),
+                    TextButton(
+                      onPressed: () => Navigator.pushReplacementNamed(context, AppRoutes.login),
+                      child: const Text('Log In', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryDark)),
+                    ),
+                  ],
+                ).animate().fadeIn(delay: 1000.ms),
               ],
             ),
-
-            // Form Area
-            Padding(
-              padding: const EdgeInsets.all(AppSizes.xl),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    'Create an account to start organizing your life and team.',
-                    style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.grey600),
-                  ).animate().fadeIn(delay: 400.ms),
-                  const SizedBox(height: AppSizes.xl),
-
-                  // Full Name Input
-                  _buildTextField(
-                    controller: _nameController,
-                    label: 'Full Name',
-                    icon: Icons.person_outline_rounded,
-                    theme: theme,
-                  ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.1),
-
-                  const SizedBox(height: AppSizes.lg),
-
-                  // Email Input
-                  _buildTextField(
-                    controller: _emailController,
-                    label: 'Email Address',
-                    icon: Icons.email_outlined,
-                    theme: theme,
-                  ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.1),
-
-                  const SizedBox(height: AppSizes.lg),
-
-                  // Password Input
-                  _buildPasswordField(
-                    controller: _passwordController,
-                    label: 'Password',
-                    isObscured: _obscurePassword,
-                    onToggle: () {
-                      setState(() {
-                        _obscurePassword = !_obscurePassword;
-                      });
-                    },
-                    theme: theme,
-                  ).animate().fadeIn(delay: 700.ms).slideY(begin: 0.1),
-
-                  const SizedBox(height: AppSizes.lg),
-
-                  // Confirm Password Input
-                  _buildPasswordField(
-                    controller: _confirmPasswordController,
-                    label: 'Confirm Password',
-                    isObscured: _obscureConfirmPassword,
-                    onToggle: () {
-                      setState(() {
-                        _obscureConfirmPassword = !_obscureConfirmPassword;
-                      });
-                    },
-                    theme: theme,
-                  ).animate().fadeIn(delay: 800.ms).slideY(begin: 0.1),
-
-                  const SizedBox(height: AppSizes.xxl),
-
-                  // Register Button
-                  SizedBox(
-                    height: 54,
-                    child: ElevatedButton(
-                      onPressed: authState.isLoading
-                          ? null
-                          : () {
-                              if (_passwordController.text != _confirmPasswordController.text) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text("Passwords do not match"), backgroundColor: Colors.red),
-                                );
-                                return;
-                              }
-                              ref.read(authNotifierProvider.notifier).register(
-                                    _nameController.text.trim(),
-                                    _emailController.text.trim(),
-                                    _passwordController.text,
-                                  );
-                            },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppSizes.radiusLg),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: authState.isLoading
-                          ? const SizedBox(
-                              height: 24,
-                              width: 24,
-                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
-                            )
-                          : const Text(
-                              'Sign Up',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                            ),
-                    ),
-                  ).animate().fadeIn(delay: 900.ms).scale(),
-
-                  const SizedBox(height: AppSizes.xl),
-
-                  // Login Link
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text("Already have an account?", style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.grey600)),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
-                        child: const Text('Log In', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
-                      ),
-                    ],
-                  ).animate().fadeIn(delay: 1000.ms),
-                ],
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -256,36 +219,33 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     required String label,
     required IconData icon,
     required ThemeData theme,
+    bool isPassword = false,
+    bool isConfirm = false,
   }) {
+    final bool isObscured = isConfirm ? _obscureConfirmPassword : _obscurePassword;
     return TextFormField(
       controller: controller,
+      obscureText: isPassword && isObscured,
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon, color: AppColors.grey400),
-      ),
-    );
-  }
-
-  Widget _buildPasswordField({
-    required TextEditingController controller,
-    required String label,
-    required bool isObscured,
-    required VoidCallback onToggle,
-    required ThemeData theme,
-  }) {
-    return TextFormField(
-      controller: controller,
-      obscureText: isObscured,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: const Icon(Icons.lock_outline_rounded, color: AppColors.grey400),
-        suffixIcon: IconButton(
-          icon: Icon(
-            isObscured ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-            color: AppColors.grey400,
-          ),
-          onPressed: onToggle,
-        ),
+        suffixIcon: isPassword
+            ? IconButton(
+                icon: Icon(
+                  isObscured ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                  color: AppColors.grey400,
+                ),
+                onPressed: () {
+                  setState(() {
+                    if (isConfirm) {
+                      _obscureConfirmPassword = !_obscureConfirmPassword;
+                    } else {
+                      _obscurePassword = !_obscurePassword;
+                    }
+                  });
+                },
+              )
+            : null,
       ),
     );
   }

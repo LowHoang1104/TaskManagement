@@ -6,12 +6,62 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../providers/project_provider.dart';
 import '../../providers/workspace_provider.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/workspace_members_provider.dart';
 import '../../../domain/entities/workspace_entity.dart';
+import '../../../domain/entities/user_entity.dart';
 
 class ProjectDashboardScreen extends ConsumerWidget {
   final String workspaceId;
   
   const ProjectDashboardScreen({super.key, required this.workspaceId});
+
+  void _showInviteDialog(BuildContext context, WidgetRef ref) {
+    final emailController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Invite Workspace Member'),
+        content: TextField(
+          controller: emailController,
+          decoration: const InputDecoration(
+            hintText: 'Enter member email',
+            labelText: 'Email',
+          ),
+          keyboardType: TextInputType.emailAddress,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (emailController.text.trim().isEmpty) return;
+              Navigator.pop(ctx);
+              
+              final success = await ref.read(workspaceMembersProvider(workspaceId).notifier)
+                  .inviteMember(emailController.text.trim());
+                  
+              if (context.mounted) {
+                if (success) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Member invited to workspace successfully!'), backgroundColor: AppColors.success),
+                  );
+                } else {
+                  final error = ref.read(workspaceMembersProvider(workspaceId)).error;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(error ?? 'Failed to invite member'), backgroundColor: AppColors.error),
+                  );
+                }
+              }
+            },
+            child: const Text('Invite'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -20,6 +70,15 @@ class ProjectDashboardScreen extends ConsumerWidget {
     final projects = projectState.projects;
     final workspaceState = ref.watch(workspaceNotifierProvider);
     final workspaceName = workspaceState.workspaces.firstWhere((w) => w.id == workspaceId, orElse: () => WorkspaceEntity(id: '', name: 'Workspace Dashboard', description: '', ownerId: '', logoUrl: null, createdAt: DateTime.now(), updatedAt: DateTime.now())).name;
+
+    final currentUser = ref.watch(authNotifierProvider).user;
+    final wsMembersState = ref.watch(workspaceMembersProvider(workspaceId));
+    final currentMember = wsMembersState.members.firstWhere(
+      (m) => m.id == currentUser?.id, 
+      orElse: () => UserEntity(id: '', fullName: '', email: '', passwordHash: '', createdAt: DateTime.now(), updatedAt: DateTime.now())
+    );
+    final isOwnerOrAdmin = currentMember.role == 'Owner' || currentMember.role == 'Admin';
+    final isOwner = currentMember.role == 'Owner';
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -32,7 +91,7 @@ class ProjectDashboardScreen extends ConsumerWidget {
           slivers: [
             // Collapsible Image Header
             SliverAppBar(
-              expandedHeight: 300,
+              expandedHeight: 180,
               floating: false,
               pinned: true,
               backgroundColor: AppColors.primary,
@@ -42,15 +101,61 @@ class ProjectDashboardScreen extends ConsumerWidget {
                 onPressed: () => Navigator.pop(context),
               ),
               actions: [
-                // IconButton(
-                //   icon: const Icon(Icons.people_outline_rounded, color: Colors.white),
-                //   onPressed: () {
-                //     Navigator.pushNamed(context, AppRoutes.projectMembers);
-                //   },
-                // ),
                 IconButton(
-                  icon: const Icon(Icons.settings_outlined, color: Colors.white),
-                  onPressed: () {},
+                  icon: const Icon(Icons.people_outline_rounded, color: Colors.white),
+                  onPressed: () {
+                    Navigator.pushNamed(context, AppRoutes.workspaceMembers, arguments: workspaceId);
+                  },
+                  tooltip: 'Workspace Members',
+                ),
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
+                  onSelected: (value) async {
+                    if (value == 'leave' && currentUser != null) {
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Leave Workspace?'),
+                          content: const Text('Are you sure you want to leave this workspace?'),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, true),
+                              child: const Text('Leave', style: TextStyle(color: Colors.red)),
+                            ),
+                          ],
+                        ),
+                      );
+
+                      if (confirm == true) {
+                        final success = await ref.read(workspaceMembersProvider(workspaceId).notifier)
+                            .removeMember(currentUser.id);
+                        if (context.mounted) {
+                          if (success) {
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Left workspace successfully')));
+                            ref.read(workspaceNotifierProvider.notifier).fetchWorkspaces(); // Refresh list to remove the workspace
+                            Navigator.pushReplacementNamed(context, AppRoutes.workspaceList);
+                          } else {
+                            final error = ref.read(workspaceMembersProvider(workspaceId)).error;
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error ?? 'Failed to leave workspace')));
+                          }
+                        }
+                      }
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    if (!isOwner)
+                      const PopupMenuItem(
+                        value: 'leave',
+                        child: Row(
+                          children: [
+                            Icon(Icons.exit_to_app_rounded, color: Colors.red, size: 20),
+                            SizedBox(width: 8),
+                            Text('Leave Workspace', style: TextStyle(color: Colors.red)),
+                          ],
+                        ),
+                      ),
+                  ],
                 ),
               ],
               flexibleSpace: FlexibleSpaceBar(
@@ -61,22 +166,24 @@ class ProjectDashboardScreen extends ConsumerWidget {
                     Container(
                       decoration: const BoxDecoration(
                         gradient: LinearGradient(
-                          begin: Alignment.topRight,
-                          end: Alignment.bottomLeft,
-                          colors: [Color(0xFFFFEDD5), Color(0xFFFEE2E2)], // Soft Orange/Red gradient
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Color(0xFFF59E0B), Color(0xFFEF4444)], // Warning to Error gradient
                         ),
                       ),
                     ),
                     
-                    // Generated 3D Illustration
+                    // Decorative shapes (optional)
                     Positioned(
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      child: Image.asset(
-                        'assets/images/project_illustration.png',
-                        fit: BoxFit.cover,
+                      top: -30,
+                      right: -30,
+                      child: Container(
+                        width: 150,
+                        height: 150,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withValues(alpha: 0.15),
+                        ),
                       ),
                     ),
 
@@ -90,7 +197,7 @@ class ProjectDashboardScreen extends ConsumerWidget {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
-                              color: AppColors.primary.withValues(alpha: 0.9),
+                              color: Colors.white.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
@@ -102,11 +209,9 @@ class ProjectDashboardScreen extends ConsumerWidget {
                           Text(
                             'Project Dashboard',
                             style: theme.textTheme.headlineMedium?.copyWith(
-                              color: theme.colorScheme.onSurface,
-                              fontWeight: FontWeight.w800,
-                              shadows: [
-                                Shadow(color: Colors.white.withValues(alpha: 0.8), blurRadius: 10)
-                              ],
+                              color: Colors.white,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.5,
                             ),
                           ).animate().fadeIn(delay: 200.ms).slideX(),
                         ],
@@ -153,11 +258,16 @@ class ProjectDashboardScreen extends ConsumerWidget {
                     // Projects List
                     projectState.isLoading && projects.isEmpty
                         ? const Center(child: CircularProgressIndicator())
-                        : ListView.separated(
+                        : GridView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: AppSizes.md,
+                        mainAxisSpacing: AppSizes.md,
+                        childAspectRatio: 1.15,
+                      ),
                       itemCount: projects.length,
-                      separatorBuilder: (context, index) => const SizedBox(height: AppSizes.lg),
                       itemBuilder: (context, index) {
                         final proj = projects[index];
                         return GestureDetector(
@@ -167,10 +277,11 @@ class ProjectDashboardScreen extends ConsumerWidget {
                               'projectId': proj.id,
                               'projectName': proj.name,
                               'workspaceName': workspaceName,
+                              'workspaceId': workspaceId,
                             });
                           },
                           child: Container(
-                            padding: const EdgeInsets.all(AppSizes.xl),
+                            padding: const EdgeInsets.all(AppSizes.md),
                             decoration: BoxDecoration(
                               color: theme.colorScheme.surface,
                               borderRadius: BorderRadius.circular(AppSizes.radiusXl),
@@ -286,7 +397,7 @@ class ProjectDashboardScreen extends ConsumerWidget {
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                 ),
-                                const SizedBox(height: AppSizes.xl),
+                                const Spacer(),
                                 // Progress bar
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,

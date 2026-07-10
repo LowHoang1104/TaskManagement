@@ -21,11 +21,24 @@ namespace TaskApi.Services
 
         public async Task<IEnumerable<ProjectDto>> GetProjectsAsync(string workspaceId, string userId)
         {
-            var projects = await _context.Projects
+            var workspace = await _context.Workspaces.FindAsync(workspaceId);
+            if (workspace == null)
+            {
+                throw new Exception("Workspace not found");
+            }
+            bool isWorkspaceOwner = workspace.OwnerId == userId;
+
+            var query = _context.Projects
                 .Include(p => p.Tasks)
                 .Include(p => p.Members)
-                .Where(p => p.WorkspaceId == workspaceId && p.Members.Any(m => m.UserId == userId && m.Status == "Accepted"))
-                .ToListAsync();
+                .Where(p => p.WorkspaceId == workspaceId);
+
+            if (!isWorkspaceOwner)
+            {
+                query = query.Where(p => p.Members.Any(m => m.UserId == userId));
+            }
+
+            var projects = await query.ToListAsync();
 
             var projectDtos = _mapper.Map<List<ProjectDto>>(projects);
             
@@ -127,10 +140,23 @@ namespace TaskApi.Services
 
         public async Task<ProjectMemberDto> AddProjectMemberAsync(string projectId, string email, string actorId)
         {
-            var actor = await _context.Set<ProjectMember>().FirstOrDefaultAsync(m => m.ProjectId == projectId && m.UserId == actorId);
-            if (actor == null || (actor.Role != "Owner" && actor.Role != "Admin"))
+            var project = await _context.Projects
+                .Include(p => p.Members)
+                .Include(p => p.Workspace)
+                .FirstOrDefaultAsync(p => p.Id == projectId);
+
+            if (project == null)
             {
-                throw new UnauthorizedAccessException("Only Owners and Admins can invite members.");
+                throw new Exception("Project not found");
+            }
+
+            bool isWorkspaceOwner = project.Workspace.OwnerId == actorId;
+            var actorMember = await _context.Set<ProjectMember>().FirstOrDefaultAsync(m => m.ProjectId == projectId && m.UserId == actorId);
+            bool isProjectAdmin = actorMember != null && (actorMember.Role == "Owner" || actorMember.Role == "Admin");
+
+            if (!isWorkspaceOwner && !isProjectAdmin)
+            {
+                throw new UnauthorizedAccessException("Only Project Admins/Owners or Workspace Owners can invite members.");
             }
 
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
@@ -139,18 +165,17 @@ namespace TaskApi.Services
                 throw new Exception("User not found");
             }
 
-            var project = await _context.Projects
-                .Include(p => p.Members)
-                .FirstOrDefaultAsync(p => p.Id == projectId);
-
-            if (project == null)
-            {
-                throw new Exception("Project not found");
-            }
-
             if (project.Members.Any(m => m.UserId == user.Id))
             {
                 throw new Exception("User is already a member of this project");
+            }
+
+            var isWorkspaceMember = await _context.Set<WorkspaceMember>()
+                .AnyAsync(wm => wm.WorkspaceId == project.WorkspaceId && wm.UserId == user.Id);
+
+            if (!isWorkspaceMember && user.Id != project.Workspace.OwnerId)
+            {
+                throw new UnauthorizedAccessException("Người này chưa tham gia Workspace.");
             }
 
             var newMember = new ProjectMember
@@ -158,34 +183,19 @@ namespace TaskApi.Services
                 ProjectId = projectId,
                 UserId = user.Id,
                 Role = "Member",
-                Status = "Pending",
+                Status = "Accepted",
                 JoinedAt = DateTime.UtcNow
             };
 
             project.Members.Add(newMember);
-
-            // Ensure the user is also a member of the workspace
-            var isWorkspaceMember = await _context.Set<WorkspaceMember>()
-                .AnyAsync(wm => wm.WorkspaceId == project.WorkspaceId && wm.UserId == user.Id);
-
-            if (!isWorkspaceMember)
-            {
-                var newWorkspaceMember = new WorkspaceMember
-                {
-                    WorkspaceId = project.WorkspaceId,
-                    UserId = user.Id,
-                    Role = "Member",
-                    JoinedAt = DateTime.UtcNow
-                };
-                _context.Set<WorkspaceMember>().Add(newWorkspaceMember);
-            }
-
             await _context.SaveChangesAsync();
+
+            var actorUser = await _context.Users.FindAsync(actorId);
 
             await _notificationService.CreateNotificationAsync(
                 userId: user.Id,
-                type: "Invite",
-                message: $"You have been invited to join project '{project.Name}' by {actor.User?.FullName ?? "someone"}",
+                type: "Project",
+                message: $"You have been added to project '{project.Name}' by {actorUser?.FullName ?? "someone"}",
                 relatedId: project.Id
             );
 
@@ -330,6 +340,47 @@ namespace TaskApi.Services
                 }
             }
 
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> RemoveProjectMemberAsync(string projectId, string userId, string actorId)
+        {
+            var project = await _context.Projects.FindAsync(projectId);
+            if (project == null) throw new Exception("Project not found");
+
+            var actorMember = await _context.Set<ProjectMember>().FirstOrDefaultAsync(m => m.ProjectId == projectId && m.UserId == actorId);
+            bool isWorkspaceOwner = false; // We can check if needed, but project Admin/Owner is sufficient
+            
+            // Allow if actor is project Admin/Owner
+            if (actorMember == null || (actorMember.Role != "Owner" && actorMember.Role != "Admin"))
+            {
+                var workspace = await _context.Workspaces.FindAsync(project.WorkspaceId);
+                if (workspace?.OwnerId != actorId)
+                {
+                    throw new UnauthorizedAccessException("Only Project Admins/Owners or Workspace Owners can remove members.");
+                }
+                isWorkspaceOwner = true;
+            }
+
+            var targetMember = await _context.Set<ProjectMember>().FirstOrDefaultAsync(m => m.ProjectId == projectId && m.UserId == userId);
+            if (targetMember == null) throw new Exception("Member not found in project");
+
+            if (targetMember.Role == "Owner" && !isWorkspaceOwner && actorMember?.Role != "Owner")
+            {
+                throw new UnauthorizedAccessException("Only the Workspace Owner or another Project Owner can remove a Project Owner.");
+            }
+
+            if (targetMember.Role == "Owner")
+            {
+                var ownerCount = await _context.Set<ProjectMember>().CountAsync(m => m.ProjectId == projectId && m.Role == "Owner");
+                if (ownerCount <= 1)
+                {
+                    throw new InvalidOperationException("Cannot remove the only Owner of the project.");
+                }
+            }
+
+            _context.Set<ProjectMember>().Remove(targetMember);
             await _context.SaveChangesAsync();
             return true;
         }

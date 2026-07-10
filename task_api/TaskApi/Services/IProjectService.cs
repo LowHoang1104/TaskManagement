@@ -13,5 +13,6 @@ namespace TaskApi.Services
         Task<ProjectMemberDto> AcceptProjectInvitationAsync(string projectId, string actorId);
         Task<bool> DeclineProjectInvitationAsync(string projectId, string actorId);
         Task<bool> LeaveProjectAsync(string projectId, string actorId);
+        Task<bool> RemoveProjectMemberAsync(string projectId, string userId, string actorId);
     }
 }

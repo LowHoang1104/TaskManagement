@@ -12,6 +12,7 @@ class AppRoutes {
   static const String workspaceList = '/workspaces';
   static const String workspaceDetail = '/workspaces/detail';
   static const String createWorkspace = '/workspaces/create';
+  static const String workspaceMembers = '/workspaces/members';
 
   // ─── Project ──────────────────────────────────────────────────────────────
   static const String projectDetail = '/projects/detail';

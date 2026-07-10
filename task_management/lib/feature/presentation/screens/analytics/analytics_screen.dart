@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../providers/dashboard_provider.dart';
+import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_sizes.dart';
 
 class AnalyticsScreen extends ConsumerWidget {
   const AnalyticsScreen({super.key});
@@ -9,11 +12,15 @@ class AnalyticsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final dashboardState = ref.watch(dashboardProvider);
+    final theme = Theme.of(context);
 
     return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Analytics Dashboard'),
-        centerTitle: true,
+        title: const Text('Analytics Overview'),
+        centerTitle: false,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
       ),
       body: dashboardState.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -32,113 +39,84 @@ class AnalyticsScreen extends ConsumerWidget {
             },
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(AppSizes.xl),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  // Top Stats Summary
+                  Row(
+                    children: [
+                      _buildSummaryBento(
+                        context,
+                        title: 'Total Tasks',
+                        value: totalTasks.toString(),
+                        icon: Icons.task_alt_rounded,
+                        color: AppColors.primary,
+                      ).animate().slideX(begin: -0.1).fadeIn(),
+                      const SizedBox(width: AppSizes.lg),
+                      _buildSummaryBento(
+                        context,
+                        title: 'Completed',
+                        value: dashboard.totalTasksDone.toString(),
+                        icon: Icons.check_circle_outline_rounded,
+                        color: AppColors.success,
+                      ).animate().slideX(begin: 0.1).fadeIn(),
+                    ],
+                  ),
+                  const SizedBox(height: AppSizes.xl),
+
+                  // Pie Chart Bento
                   _buildChartCard(
                     context,
                     title: "Task Status Distribution",
                     child: SizedBox(
-                      height: 250,
+                      height: 220,
                       child: totalTasks == 0 
                         ? const Center(child: Text("No tasks available"))
                         : PieChart(
                         PieChartData(
-                          sectionsSpace: 2,
-                          centerSpaceRadius: 40,
+                          sectionsSpace: 4,
+                          centerSpaceRadius: 50,
                           sections: [
                             if (toDoPct > 0)
                               PieChartSectionData(
-                                color: Colors.grey,
+                                color: AppColors.grey400,
                                 value: toDoPct,
-                                title: 'To Do\n${toDoPct.toStringAsFixed(1)}%',
-                                radius: 50,
-                                titleStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                                title: '${toDoPct.toStringAsFixed(0)}%',
+                                radius: 45,
+                                titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
                               ),
                             if (inProgressPct > 0)
                               PieChartSectionData(
-                                color: Colors.blue,
+                                color: AppColors.info,
                                 value: inProgressPct,
-                                title: 'Doing\n${inProgressPct.toStringAsFixed(1)}%',
-                                radius: 50,
-                                titleStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                                title: '${inProgressPct.toStringAsFixed(0)}%',
+                                radius: 55,
+                                titleStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
                               ),
                             if (reviewPct > 0)
                               PieChartSectionData(
-                                color: Colors.orange,
+                                color: AppColors.warning,
                                 value: reviewPct,
-                                title: 'Review\n${reviewPct.toStringAsFixed(1)}%',
+                                title: '${reviewPct.toStringAsFixed(0)}%',
                                 radius: 50,
-                                titleStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                                titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
                               ),
                             if (donePct > 0)
                               PieChartSectionData(
-                                color: Colors.green,
+                                color: AppColors.success,
                                 value: donePct,
-                                title: 'Done\n${donePct.toStringAsFixed(1)}%',
-                                radius: 50,
-                                titleStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                                title: '${donePct.toStringAsFixed(0)}%',
+                                radius: 60,
+                                titleStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
                               ),
                           ],
                         ),
-                      ),
+                      ).animate().scale(delay: 300.ms, duration: 500.ms, curve: Curves.easeOutBack),
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                  _buildChartCard(
-                    context,
-                    title: "Weekly Productivity",
-                    child: SizedBox(
-                      height: 250,
-                      child: BarChart(
-                        BarChartData(
-                          alignment: BarChartAlignment.spaceAround,
-                          maxY: 20,
-                          barTouchData: BarTouchData(enabled: false),
-                          titlesData: FlTitlesData(
-                            show: true,
-                            bottomTitles: AxisTitles(
-                              sideTitles: SideTitles(
-                                showTitles: true,
-                                getTitlesWidget: (double value, TitleMeta meta) {
-                                  const style = TextStyle(fontWeight: FontWeight.bold, fontSize: 12);
-                                  Widget text;
-                                  switch (value.toInt()) {
-                                    case 0: text = const Text('Mon', style: style); break;
-                                    case 1: text = const Text('Tue', style: style); break;
-                                    case 2: text = const Text('Wed', style: style); break;
-                                    case 3: text = const Text('Thu', style: style); break;
-                                    case 4: text = const Text('Fri', style: style); break;
-                                    case 5: text = const Text('Sat', style: style); break;
-                                    case 6: text = const Text('Sun', style: style); break;
-                                    default: text = const Text('', style: style); break;
-                                  }
-                                  return SideTitleWidget(meta: meta, child: text);
-                                },
-                              ),
-                            ),
-                            leftTitles: const AxisTitles(
-                              sideTitles: SideTitles(showTitles: true, reservedSize: 30),
-                            ),
-                            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                          ),
-                          gridData: const FlGridData(show: false),
-                          borderData: FlBorderData(show: false),
-                          barGroups: [
-                            BarChartGroupData(x: 0, barRods: [BarChartRodData(toY: 8, color: Colors.indigo)]),
-                            BarChartGroupData(x: 1, barRods: [BarChartRodData(toY: 10, color: Colors.indigo)]),
-                            BarChartGroupData(x: 2, barRods: [BarChartRodData(toY: 14, color: Colors.indigo)]),
-                            BarChartGroupData(x: 3, barRods: [BarChartRodData(toY: 15, color: Colors.indigo)]),
-                            BarChartGroupData(x: 4, barRods: [BarChartRodData(toY: 13, color: Colors.indigo)]),
-                            BarChartGroupData(x: 5, barRods: [BarChartRodData(toY: 10, color: Colors.indigo)]),
-                            BarChartGroupData(x: 6, barRods: [BarChartRodData(toY: 5, color: Colors.indigo)]),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
+                  ).animate().slideY(begin: 0.1, delay: 200.ms).fadeIn(),
+                  
+                  const SizedBox(height: 40),
                 ],
               ),
             ),
@@ -148,22 +126,86 @@ class AnalyticsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildChartCard(BuildContext context, {required String title, required Widget child}) {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
+  BarChartGroupData _buildBarGroup(int x, double y, Color color) {
+    return BarChartGroupData(
+      x: x, 
+      barRods: [
+        BarChartRodData(
+          toY: y, 
+          color: color, 
+          width: 16,
+          borderRadius: const BorderRadius.only(topLeft: Radius.circular(6), topRight: Radius.circular(6)),
+        )
+      ]
+    );
+  }
+
+  Widget _buildSummaryBento(BuildContext context, {required String title, required String value, required IconData icon, required Color color}) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(AppSizes.lg),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(AppSizes.radiusXl),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
+        ),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.2),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 24),
+            ),
+            const SizedBox(height: AppSizes.md),
+            Text(
+              value,
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                fontWeight: FontWeight.w900,
+                color: color,
+              ),
+            ),
             Text(
               title,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: color.withValues(alpha: 0.8),
+              ),
             ),
-            const SizedBox(height: 20),
-            child,
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildChartCard(BuildContext context, {required String title, required Widget child}) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(AppSizes.xl),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(AppSizes.radiusXl),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.grey200.withValues(alpha: 0.4),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: AppSizes.xl),
+          child,
+        ],
       ),
     );
   }

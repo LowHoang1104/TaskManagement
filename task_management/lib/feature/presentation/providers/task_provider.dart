@@ -69,15 +69,37 @@ class TaskNotifier extends StateNotifier<TaskState> {
       },
       (task) {
         // Updated correctly on server
-      }
+      },
     );
   }
 
-  Future<void> createTask(String title, String description, TaskStatus status, TaskPriority priority) async {
-    final result = await _service.createTask(projectId, title, description, status, priority);
+  Future<void> updateTaskAssignee(String taskId, String? assigneeId) async {
+    final result = await _service.updateTaskAssignee(projectId, taskId, assigneeId);
     result.fold(
       (error) => state = state.copyWith(error: error),
-      (newTask) => state = state.copyWith(tasks: [...state.tasks, newTask]),
+      (updatedTask) {
+        final updatedTasks = state.tasks.map((t) => t.id == taskId ? updatedTask : t).toList();
+        state = state.copyWith(tasks: updatedTasks);
+      },
+    );
+  }
+
+  void updateTaskAssigneeLocally(TaskEntity updatedTask) {
+    final updatedTasks = state.tasks.map((t) => t.id == updatedTask.id ? updatedTask : t).toList();
+    state = state.copyWith(tasks: updatedTasks);
+  }
+
+  Future<TaskEntity?> createTask(String title, String description, TaskStatus status, TaskPriority priority) async {
+    final result = await _service.createTask(projectId, title, description, status, priority);
+    return result.fold(
+      (error) {
+        state = state.copyWith(error: error);
+        return null;
+      },
+      (newTask) {
+        state = state.copyWith(tasks: [...state.tasks, newTask]);
+        return newTask;
+      },
     );
   }
 

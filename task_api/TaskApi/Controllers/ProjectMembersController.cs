@@ -123,6 +123,26 @@ namespace TaskApi.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
+        [HttpDelete("{userId}")]
+        public async Task<IActionResult> RemoveMember(string projectId, string userId)
+        {
+            var actorId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(actorId)) return Unauthorized();
+
+            try
+            {
+                await _projectService.RemoveProjectMemberAsync(projectId, userId, actorId);
+                return Ok(new { message = "Member removed from project." });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(403, new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
     }
 
     public class InviteMemberRequest

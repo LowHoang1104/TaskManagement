@@ -41,7 +41,12 @@ class ProjectService implements IProjectService {
     return await _repository.deleteProject(workspaceId, id);
   }
   @override
-  Future<Either<String, bool>> leaveProject(String projectId) async {
-    return await _repository.leaveProject(projectId);
+  Future<Either<String, bool>> leaveProject(String projectId) {
+    return _repository.leaveProject(projectId);
+  }
+
+  @override
+  Future<Either<String, bool>> removeProjectMember(String projectId, String userId) {
+    return _repository.removeProjectMember(projectId, userId);
   }
 }

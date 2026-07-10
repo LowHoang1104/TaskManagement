@@ -6,21 +6,21 @@ class AppColors {
   AppColors._();
 
   // ─── Brand ───────────────────────────────────────────────────────────────
-  static const Color primary = Color(0xFF6366F1);       // Indigo 500
-  static const Color primaryLight = Color(0xFFA5B4FC);  // Indigo 300
-  static const Color primaryDark = Color(0xFF4338CA);   // Indigo 700
+  static const Color primary = Color(0xFF8B5CF6);       // Violet 500
+  static const Color primaryLight = Color(0xFFC4B5FD);  // Violet 300
+  static const Color primaryDark = Color(0xFF6D28D9);   // Violet 700
 
-  static const Color secondary = Color(0xFF06B6D4);     // Cyan 500
-  static const Color accent = Color(0xFFF59E0B);        // Amber 500
+  static const Color secondary = Color(0xFF3B82F6);     // Blue 500
+  static const Color accent = Color(0xFFF43F5E);        // Rose 500
 
   // ─── Neutrals ────────────────────────────────────────────────────────────
-  static const Color grey50 = Color(0xFFF9FAFB);
-  static const Color grey100 = Color(0xFFF3F4F6);
-  static const Color grey200 = Color(0xFFE5E7EB);
-  static const Color grey400 = Color(0xFF9CA3AF);
-  static const Color grey600 = Color(0xFF4B5563);
-  static const Color grey800 = Color(0xFF1F2937);
-  static const Color grey900 = Color(0xFF111827);
+  static const Color grey50 = Color(0xFFF8FAFC);
+  static const Color grey100 = Color(0xFFF1F5F9);
+  static const Color grey200 = Color(0xFFE2E8F0);
+  static const Color grey400 = Color(0xFF94A3B8);
+  static const Color grey600 = Color(0xFF475569);
+  static const Color grey800 = Color(0xFF1E293B);
+  static const Color grey900 = Color(0xFF0F172A);
 
   // ─── Semantic ────────────────────────────────────────────────────────────
   static const Color success = Color(0xFF10B981);  // Green 500

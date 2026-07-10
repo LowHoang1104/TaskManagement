@@ -29,6 +29,8 @@ class WorkspaceEndpoints {
   static String byId(String id) => '/workspaces/$id';
   static String members(String id) => '/workspaces/$id/members';
   static String delete(String id) => '/workspaces/$id';
+  static String memberRole(String id, String userId) => '/workspaces/$id/members/$userId/role';
+  static String member(String id, String userId) => '/workspaces/$id/members/$userId';
 }
 
 /// Project endpoints
@@ -40,6 +42,8 @@ class ProjectEndpoints {
       '/workspaces/$workspaceId/projects';
   static String members(String id) => '/projects/$id/members';
   static String delete(String workspaceId, String id) => '/workspaces/$workspaceId/projects/$id';
+  static String memberRole(String projectId, String userId) => '/projects/$projectId/members/$userId/role';
+  static String member(String projectId, String userId) => '/projects/$projectId/members/$userId';
 }
 
 /// Task endpoints

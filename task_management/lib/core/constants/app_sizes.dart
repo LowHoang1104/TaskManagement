@@ -11,10 +11,10 @@ class AppSizes {
   static const double xxl = 48.0;
 
   // ─── Border Radius ───────────────────────────────────────────────────────
-  static const double radiusSm = 6.0;
-  static const double radiusMd = 12.0;
-  static const double radiusLg = 16.0;
-  static const double radiusXl = 24.0;
+  static const double radiusSm = 8.0;
+  static const double radiusMd = 16.0;
+  static const double radiusLg = 24.0;
+  static const double radiusXl = 32.0;
   static const double radiusFull = 999.0;
 
   // ─── Icon Sizes ──────────────────────────────────────────────────────────
@@ -38,5 +38,5 @@ class AppSizes {
   static const double avatarSm = 32.0;
   static const double avatarMd = 40.0;
   static const double avatarLg = 56.0;
-  static const double cardElevation = 2.0;
+  static const double cardElevation = 0.0;
 }

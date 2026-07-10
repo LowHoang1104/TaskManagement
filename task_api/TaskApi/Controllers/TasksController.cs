@@ -52,19 +52,43 @@ namespace TaskApi.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteTask(string projectId, string id)
+        public async Task<IActionResult> DeleteTask(string id)
         {
-            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+            var actorId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(actorId)) return Unauthorized();
 
             try
             {
-                await _taskService.DeleteTaskAsync(id, userId);
-                return Ok(new { message = "Task deleted successfully." });
+                await _taskService.DeleteTaskAsync(id, actorId);
+                return Ok(new { message = "Task deleted." });
             }
-            catch (UnauthorizedAccessException ex)
+            catch (Exception ex)
             {
-                return StatusCode(403, new { message = ex.Message });
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpGet("~/api/tasks/{id}/dependencies")]
+        public async Task<IActionResult> GetTaskDependencies(string id)
+        {
+            try
+            {
+                var deps = await _taskService.GetTaskDependenciesAsync(id);
+                return Ok(deps);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPost("~/api/tasks/{id}/dependencies")]
+        public async Task<IActionResult> SetTaskDependency(string id, [FromBody] SetTaskDependencyRequest request)
+        {
+            try
+            {
+                await _taskService.SetTaskDependencyAsync(id, request.PredecessorTaskId, request.DependencyType);
+                return Ok(new { message = "Dependency updated successfully." });
             }
             catch (Exception ex)
             {

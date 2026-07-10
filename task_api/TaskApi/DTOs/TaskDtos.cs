@@ -14,7 +14,10 @@ namespace TaskApi.DTOs
         public DateTime? Deadline { get; set; }
         public string? AssigneeId { get; set; }
         public string ReporterId { get; set; } = string.Empty;
+        public string? AssigneeName { get; set; }
+        public string? ReporterName { get; set; }
         public DateTime CreatedAt { get; set; }
+        public List<TaskDependencyDto> Dependencies { get; set; } = new();
     }
 
     public class TaskCreateDto

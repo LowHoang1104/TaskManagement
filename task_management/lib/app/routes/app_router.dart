@@ -4,6 +4,7 @@ import '../../feature/presentation/screens/auth/login_screen.dart';
 import '../../feature/presentation/screens/auth/register_screen.dart';
 import '../../feature/presentation/screens/workspace/workspace_list_screen.dart';
 import '../../feature/presentation/screens/workspace/project_dashboard_screen.dart';
+import '../../feature/presentation/screens/workspace/workspace_members_screen.dart';
 import '../../feature/presentation/screens/project/project_members_screen.dart';
 import '../../feature/presentation/screens/task/task_board_screen.dart';
 import '../../feature/presentation/screens/task/task_detail_screen.dart';
@@ -40,6 +41,10 @@ class AppRouter {
       case AppRoutes.createWorkspace:
         return _build(const _PlaceholderScreen(title: 'Create Workspace'), settings);
 
+      case AppRoutes.workspaceMembers:
+        final workspaceId = settings.arguments as String? ?? '';
+        return _build(WorkspaceMembersScreen(workspaceId: workspaceId), settings);
+
       // ─── Project ──────────────────────────────────────────────────────────
       case AppRoutes.projectDetail:
         final workspaceId = settings.arguments as String? ?? '';
@@ -49,8 +54,10 @@ class AppRouter {
         return _build(const _PlaceholderScreen(title: 'Create Project'), settings);
 
       case AppRoutes.projectMembers:
-        final projectId = settings.arguments as String? ?? '';
-        return _build(ProjectMembersScreen(projectId: projectId), settings);
+        final args = settings.arguments as Map<String, dynamic>? ?? {};
+        final projectId = args['projectId'] as String? ?? '';
+        final workspaceId = args['workspaceId'] as String? ?? '';
+        return _build(ProjectMembersScreen(projectId: projectId, workspaceId: workspaceId), settings);
 
       // ── Task ─────────────────────────────────────────────────────────────
       case AppRoutes.taskBoard:
@@ -60,10 +67,10 @@ class AppRouter {
             projectId: args['projectId'] as String,
             projectName: args['projectName'] as String,
             workspaceName: args['workspaceName'] as String,
+            workspaceId: args['workspaceId'] as String? ?? '',
           ), settings);
         }
-        final projectId = settings.arguments as String? ?? '';
-        return _build(TaskBoardScreen(projectId: projectId, projectName: 'Project', workspaceName: 'Workspace'), settings);
+        return _build(TaskBoardScreen(projectId: '', projectName: 'Project', workspaceName: 'Workspace', workspaceId: ''), settings);
 
       case AppRoutes.taskDetail:
         final task = settings.arguments as TaskEntity;

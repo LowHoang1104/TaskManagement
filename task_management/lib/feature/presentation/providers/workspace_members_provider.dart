@@ -1,25 +1,25 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../domain/entities/entities.dart';
-import '../../application/i_services/i_project_service.dart';
+import '../../application/i_services/i_workspace_service.dart';
 
-class ProjectMembersState {
+class WorkspaceMembersState {
   final bool isLoading;
   final String? error;
   final List<UserEntity> members;
 
-  const ProjectMembersState({
+  const WorkspaceMembersState({
     this.isLoading = false,
     this.error,
     this.members = const [],
   });
 
-  ProjectMembersState copyWith({
+  WorkspaceMembersState copyWith({
     bool? isLoading,
     String? error,
     List<UserEntity>? members,
   }) {
-    return ProjectMembersState(
+    return WorkspaceMembersState(
       isLoading: isLoading ?? this.isLoading,
       error: error,
       members: members ?? this.members,
@@ -27,16 +27,16 @@ class ProjectMembersState {
   }
 }
 
-class ProjectMembersNotifier extends StateNotifier<ProjectMembersState> {
-  final String projectId;
+class WorkspaceMembersNotifier extends StateNotifier<WorkspaceMembersState> {
+  final String workspaceId;
   
-  ProjectMembersNotifier(this.projectId) : super(const ProjectMembersState()) {
+  WorkspaceMembersNotifier(this.workspaceId) : super(const WorkspaceMembersState()) {
     fetchMembers();
   }
 
   Future<void> fetchMembers() async {
     state = state.copyWith(isLoading: true, error: null);
-    final result = await sl<IProjectService>().getProjectMembers(projectId);
+    final result = await sl<IWorkspaceService>().getWorkspaceMembers(workspaceId);
     
     result.fold(
       (error) => state = state.copyWith(isLoading: false, error: error),
@@ -46,7 +46,7 @@ class ProjectMembersNotifier extends StateNotifier<ProjectMembersState> {
 
   Future<bool> inviteMember(String email) async {
     state = state.copyWith(isLoading: true, error: null);
-    final result = await sl<IProjectService>().inviteProjectMember(projectId, email);
+    final result = await sl<IWorkspaceService>().inviteWorkspaceMember(workspaceId, email);
     
     return result.fold(
       (error) {
@@ -65,7 +65,7 @@ class ProjectMembersNotifier extends StateNotifier<ProjectMembersState> {
 
   Future<bool> updateRole(String userId, String newRole) async {
     state = state.copyWith(isLoading: true, error: null);
-    final result = await sl<IProjectService>().updateProjectMemberRole(projectId, userId, newRole);
+    final result = await sl<IWorkspaceService>().updateWorkspaceMemberRole(workspaceId, userId, newRole);
     
     return result.fold(
       (error) {
@@ -89,14 +89,14 @@ class ProjectMembersNotifier extends StateNotifier<ProjectMembersState> {
 
   Future<bool> removeMember(String userId) async {
     state = state.copyWith(isLoading: true, error: null);
-    final result = await sl<IProjectService>().removeProjectMember(projectId, userId);
+    final result = await sl<IWorkspaceService>().removeWorkspaceMember(workspaceId, userId);
     
     return result.fold(
       (error) {
         state = state.copyWith(isLoading: false, error: error);
         return false;
       },
-      (_) {
+      (success) {
         final updatedMembers = state.members.where((m) => m.id != userId).toList();
         state = state.copyWith(
           isLoading: false,
@@ -108,6 +108,6 @@ class ProjectMembersNotifier extends StateNotifier<ProjectMembersState> {
   }
 }
 
-final projectMembersProvider = StateNotifierProvider.family<ProjectMembersNotifier, ProjectMembersState, String>(
-  (ref, projectId) => ProjectMembersNotifier(projectId),
+final workspaceMembersProvider = StateNotifierProvider.family<WorkspaceMembersNotifier, WorkspaceMembersState, String>(
+  (ref, workspaceId) => WorkspaceMembersNotifier(workspaceId),
 );

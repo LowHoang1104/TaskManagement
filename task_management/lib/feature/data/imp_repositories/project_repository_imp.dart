@@ -186,10 +186,22 @@ class ProjectRepositoryImp implements IProjectRepository {
   @override
   Future<Either<String, bool>> leaveProject(String projectId) async {
     try {
-      await _dio.delete('${ProjectEndpoints.members(projectId)}/leave');
+      await _dio.delete(ProjectEndpoints.byId(projectId) + '/members/leave');
       return const Right(true);
     } on DioException catch (e) {
       return Left(e.response?.data?['message'] ?? e.message ?? 'Failed to leave project');
+    } catch (e) {
+      return Left(e.toString());
+    }
+  }
+
+  @override
+  Future<Either<String, bool>> removeProjectMember(String projectId, String userId) async {
+    try {
+      await _dio.delete(ProjectEndpoints.member(projectId, userId));
+      return const Right(true);
+    } on DioException catch (e) {
+      return Left(e.response?.data?['message'] ?? e.message ?? 'Failed to remove member');
     } catch (e) {
       return Left(e.toString());
     }

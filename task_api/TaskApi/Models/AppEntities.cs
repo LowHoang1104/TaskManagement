@@ -100,6 +100,22 @@ namespace TaskApi.Models
         public ICollection<Comment> Comments { get; set; } = new List<Comment>();
         public ICollection<Attachment> Attachments { get; set; } = new List<Attachment>();
         public ICollection<ChecklistItem> ChecklistItems { get; set; } = new List<ChecklistItem>();
+
+        // Navigation properties for dependencies
+        public ICollection<TaskDependency> Dependencies { get; set; } = new List<TaskDependency>();
+        public ICollection<TaskDependency> DependentTasks { get; set; } = new List<TaskDependency>();
+    }
+
+    public class TaskDependency
+    {
+        [Key]
+        public string Id { get; set; } = Guid.NewGuid().ToString();
+        public string PredecessorTaskId { get; set; } = string.Empty; // The task that blocks
+        public string SuccessorTaskId { get; set; } = string.Empty; // The task that is blocked
+        public string DependencyType { get; set; } = "FS"; // FS, SS, FF, SF
+
+        public TaskItem PredecessorTask { get; set; } = null!;
+        public TaskItem SuccessorTask { get; set; } = null!;
     }
 
     public class Tag
