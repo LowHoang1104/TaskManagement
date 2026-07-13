@@ -164,6 +164,15 @@ class ProfileScreen extends ConsumerWidget {
                               },
                             ),
                           ),
+                          const Divider(height: 1),
+                          _buildMenuItem(
+                            Icons.lock_rounded,
+                            'Change Password',
+                            theme,
+                            onTap: () {
+                              Navigator.pushNamed(context, AppRoutes.changePassword);
+                            },
+                          ),
                         ],
                       ),
                     ).animate().slideY(begin: 0.1, delay: 300.ms).fadeIn(),

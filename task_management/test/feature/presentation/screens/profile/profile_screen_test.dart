@@ -19,6 +19,8 @@ class MockAuthNotifier extends StateNotifier<AuthState> implements AuthNotifier 
   Future<void> logout() async {}
   @override
   Future<void> checkAuthStatus() async {}
+  @override
+  Future<bool> changePassword(String currentPassword, String newPassword) async => true;
 }
 
 class MockDashboardNotifier extends StateNotifier<AsyncValue<DashboardEntity>> implements DashboardNotifier {
@@ -54,6 +56,9 @@ void main() {
         onGenerateRoute: (settings) {
           if (settings.name == AppRoutes.login) {
             return MaterialPageRoute(builder: (_) => const Scaffold(body: Text('Login Screen')));
+          }
+          if (settings.name == AppRoutes.changePassword) {
+            return MaterialPageRoute(builder: (_) => const Scaffold(body: Text('Change Password Screen')));
           }
           return null;
         },
@@ -102,6 +107,20 @@ void main() {
       await tester.pumpAndSettle();
       
       expect(find.text('Login Screen'), findsOneWidget);
+    });
+
+    testWidgets('navigates to change password screen', (tester) async {
+      await tester.pumpWidget(createWidgetUnderTest());
+      await tester.pumpAndSettle();
+
+      final changePwdFinder = find.text('Change Password');
+      await tester.ensureVisible(changePwdFinder);
+      await tester.pumpAndSettle();
+
+      await tester.tap(changePwdFinder);
+      await tester.pumpAndSettle();
+      
+      expect(find.text('Change Password Screen'), findsOneWidget);
     });
   });
 }

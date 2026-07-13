@@ -9,6 +9,7 @@ import '../../feature/presentation/screens/project/project_members_screen.dart';
 import '../../feature/presentation/screens/task/task_board_screen.dart';
 import '../../feature/presentation/screens/task/task_detail_screen.dart';
 import '../../feature/presentation/screens/profile/profile_screen.dart';
+import '../../feature/presentation/screens/profile/change_password_screen.dart';
 import '../../feature/presentation/screens/analytics/analytics_screen.dart';
 import '../../feature/domain/entities/entities.dart';
 import 'app_routes.dart';
@@ -85,6 +86,9 @@ class AppRouter {
 
       case AppRoutes.settings:
         return _build(const _PlaceholderScreen(title: 'Settings'), settings);
+
+      case AppRoutes.changePassword:
+        return _build(const ChangePasswordScreen(), settings);
 
       case AppRoutes.notifications:
         return _build(const _PlaceholderScreen(title: 'Notifications'), settings);

@@ -132,4 +132,51 @@ void main() {
       verify(() => mockAuthService.logout()).called(1);
     });
   });
+
+  group('AuthNotifier - changePassword', () {
+    const tCurrentPassword = 'oldPassword';
+    const tNewPassword = 'newPassword';
+
+    test('should emit success state (true) when changePassword succeeds', () async {
+      // Arrange
+      when(() => mockAuthService.changePassword(tCurrentPassword, tNewPassword))
+          .thenAnswer((_) async => const Right(null));
+
+      // Mock user login to have a user in state
+      authNotifier.state = AuthState(user: UserEntity(
+        id: '1', fullName: 'Mock', email: 'mock', passwordHash: '', createdAt: DateTime.now(), updatedAt: DateTime.now()
+      ));
+
+      // Act
+      final result = await authNotifier.changePassword(tCurrentPassword, tNewPassword);
+
+      // Assert
+      expect(result, true);
+      expect(authNotifier.state.isLoading, false);
+      expect(authNotifier.state.error, null);
+      expect(authNotifier.state.user, isNotNull); // User should still be there
+      verify(() => mockAuthService.changePassword(tCurrentPassword, tNewPassword)).called(1);
+    });
+
+    test('should emit error state (false) when changePassword fails', () async {
+      // Arrange
+      when(() => mockAuthService.changePassword(tCurrentPassword, tNewPassword))
+          .thenAnswer((_) async => const Left('Invalid old password'));
+
+      // Mock user login to have a user in state
+      authNotifier.state = AuthState(user: UserEntity(
+        id: '1', fullName: 'Mock', email: 'mock', passwordHash: '', createdAt: DateTime.now(), updatedAt: DateTime.now()
+      ));
+
+      // Act
+      final result = await authNotifier.changePassword(tCurrentPassword, tNewPassword);
+
+      // Assert
+      expect(result, false);
+      expect(authNotifier.state.isLoading, false);
+      expect(authNotifier.state.error, 'Invalid old password');
+      expect(authNotifier.state.user, isNotNull); // User should still be there
+      verify(() => mockAuthService.changePassword(tCurrentPassword, tNewPassword)).called(1);
+    });
+  });
 }

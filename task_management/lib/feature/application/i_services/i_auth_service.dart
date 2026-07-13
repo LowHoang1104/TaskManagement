@@ -5,4 +5,5 @@ abstract class IAuthService {
   Future<Either<String, UserEntity>> login(String email, String password);
   Future<Either<String, UserEntity>> register(String fullName, String email, String password);
   Future<Either<String, void>> logout();
+  Future<Either<String, void>> changePassword(String currentPassword, String newPassword);
 }

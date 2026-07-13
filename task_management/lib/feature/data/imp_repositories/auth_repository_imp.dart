@@ -91,4 +91,22 @@ class AuthRepositoryImp implements IAuthRepository {
       return Left(e.toString());
     }
   }
+
+  @override
+  Future<Either<String, void>> changePassword(String currentPassword, String newPassword) async {
+    try {
+      await _dio.post(
+        AuthEndpoints.changePassword,
+        data: {
+          'currentPassword': currentPassword,
+          'newPassword': newPassword,
+        },
+      );
+      return const Right(null);
+    } on DioException catch (e) {
+      return Left(e.response?.data?['message'] ?? e.message ?? 'Failed to change password');
+    } catch (e) {
+      return Left(e.toString());
+    }
+  }
 }

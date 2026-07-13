@@ -27,6 +27,7 @@ class AppRoutes {
   // ─── Profile & Settings ──────────────────────────────────────────────────
   static const String profile = '/profile';
   static const String settings = '/settings';
+  static const String changePassword = '/change-password';
 
   // ─── Notifications & Analytics ──────────────────────────────────────────────
   static const String notifications = '/notifications';

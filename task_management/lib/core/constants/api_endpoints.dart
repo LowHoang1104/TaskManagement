@@ -13,6 +13,7 @@ class AuthEndpoints {
   static const String logout = '/auth/logout';
   static const String refreshToken = '/auth/refresh';
   static const String me = '/auth/me';
+  static const String changePassword = '/auth/change-password';
 }
 
 /// User endpoints

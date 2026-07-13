@@ -208,4 +208,55 @@ void main() {
       );
     });
   });
+
+  group('AuthRepositoryImp - changePassword', () {
+    const tCurrentPassword = 'oldPassword';
+    const tNewPassword = 'newPassword';
+
+    test('should return Right(null) on successful password change', () async {
+      // Arrange
+      when(() => mockDio.post(
+            AuthEndpoints.changePassword,
+            data: any(named: 'data'),
+          )).thenAnswer((_) async => Response(
+            requestOptions: RequestOptions(path: AuthEndpoints.changePassword),
+            statusCode: 200,
+          ));
+
+      // Act
+      final result = await repository.changePassword(tCurrentPassword, tNewPassword);
+
+      // Assert
+      expect(result.isRight(), true);
+      verify(() => mockDio.post(AuthEndpoints.changePassword, data: {
+        'currentPassword': tCurrentPassword,
+        'newPassword': tNewPassword,
+      })).called(1);
+    });
+
+    test('should return Left with error message on failure', () async {
+      // Arrange
+      when(() => mockDio.post(
+            AuthEndpoints.changePassword,
+            data: any(named: 'data'),
+          )).thenThrow(DioException(
+            requestOptions: RequestOptions(path: AuthEndpoints.changePassword),
+            response: Response(
+              requestOptions: RequestOptions(path: AuthEndpoints.changePassword),
+              statusCode: 400,
+              data: {'message': 'Incorrect current password'},
+            ),
+          ));
+
+      // Act
+      final result = await repository.changePassword(tCurrentPassword, tNewPassword);
+
+      // Assert
+      expect(result.isLeft(), true);
+      result.fold(
+        (msg) => expect(msg, 'Incorrect current password'),
+        (r) => fail('Should not return right'),
+      );
+    });
+  });
 }
