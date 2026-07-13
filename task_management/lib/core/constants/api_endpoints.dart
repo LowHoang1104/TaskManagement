@@ -1,4 +1,6 @@
-const String kBaseUrl = 'http://10.0.2.2:5058/api';
+// const String kBaseUrl = 'http://10.0.2.2:5058/api';
+
+const String kBaseUrl = 'http://localhost:5058/api';
 
 /// Timeout durations (in seconds).
 const int kConnectTimeout = 15;
