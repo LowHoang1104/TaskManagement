@@ -86,6 +86,26 @@ class ProjectMembersNotifier extends StateNotifier<ProjectMembersState> {
       },
     );
   }
+
+  Future<bool> removeMember(String userId) async {
+    state = state.copyWith(isLoading: true, error: null);
+    final result = await sl<IProjectService>().removeProjectMember(projectId, userId);
+    
+    return result.fold(
+      (error) {
+        state = state.copyWith(isLoading: false, error: error);
+        return false;
+      },
+      (_) {
+        final updatedMembers = state.members.where((m) => m.id != userId).toList();
+        state = state.copyWith(
+          isLoading: false,
+          members: updatedMembers,
+        );
+        return true;
+      },
+    );
+  }
 }
 
 final projectMembersProvider = StateNotifierProvider.family<ProjectMembersNotifier, ProjectMembersState, String>(

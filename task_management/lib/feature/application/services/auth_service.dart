@@ -20,4 +20,8 @@ class AuthService implements IAuthService {
   Future<Either<String, void>> logout() async {
     return await _repository.logout();
   }
+  @override
+  Future<Either<String, void>> changePassword(String currentPassword, String newPassword) async {
+    return await _repository.changePassword(currentPassword, newPassword);
+  }
 }

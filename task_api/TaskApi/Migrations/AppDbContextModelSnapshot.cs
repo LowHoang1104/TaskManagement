@@ -264,6 +264,32 @@ namespace TaskApi.Migrations
                     b.ToTable("Tags");
                 });
 
+            modelBuilder.Entity("TaskApi.Models.TaskDependency", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("DependencyType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PredecessorTaskId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("SuccessorTaskId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PredecessorTaskId");
+
+                    b.HasIndex("SuccessorTaskId");
+
+                    b.ToTable("TaskDependencies");
+                });
+
             modelBuilder.Entity("TaskApi.Models.TaskItem", b =>
                 {
                     b.Property<string>("Id")
@@ -530,6 +556,25 @@ namespace TaskApi.Migrations
                     b.Navigation("Workspace");
                 });
 
+            modelBuilder.Entity("TaskApi.Models.TaskDependency", b =>
+                {
+                    b.HasOne("TaskApi.Models.TaskItem", "PredecessorTask")
+                        .WithMany("DependentTasks")
+                        .HasForeignKey("PredecessorTaskId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TaskApi.Models.TaskItem", "SuccessorTask")
+                        .WithMany("Dependencies")
+                        .HasForeignKey("SuccessorTaskId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("PredecessorTask");
+
+                    b.Navigation("SuccessorTask");
+                });
+
             modelBuilder.Entity("TaskApi.Models.TaskItem", b =>
                 {
                     b.HasOne("TaskApi.Models.User", "Assignee")
@@ -624,6 +669,10 @@ namespace TaskApi.Migrations
                     b.Navigation("ChecklistItems");
 
                     b.Navigation("Comments");
+
+                    b.Navigation("Dependencies");
+
+                    b.Navigation("DependentTasks");
 
                     b.Navigation("TaskTags");
                 });

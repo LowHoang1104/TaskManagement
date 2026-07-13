@@ -12,6 +12,7 @@ class AppRoutes {
   static const String workspaceList = '/workspaces';
   static const String workspaceDetail = '/workspaces/detail';
   static const String createWorkspace = '/workspaces/create';
+  static const String workspaceMembers = '/workspaces/members';
 
   // ─── Project ──────────────────────────────────────────────────────────────
   static const String projectDetail = '/projects/detail';
@@ -26,6 +27,7 @@ class AppRoutes {
   // ─── Profile & Settings ──────────────────────────────────────────────────
   static const String profile = '/profile';
   static const String settings = '/settings';
+  static const String changePassword = '/change-password';
 
   // ─── Notifications & Analytics ──────────────────────────────────────────────
   static const String notifications = '/notifications';

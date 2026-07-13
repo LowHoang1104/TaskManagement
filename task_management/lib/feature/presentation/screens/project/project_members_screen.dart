@@ -6,10 +6,12 @@ import '../../../domain/entities/entities.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/project_members_provider.dart';
+import '../../providers/workspace_members_provider.dart';
 
 class ProjectMembersScreen extends ConsumerStatefulWidget {
   final String projectId;
-  const ProjectMembersScreen({super.key, required this.projectId});
+  final String workspaceId;
+  const ProjectMembersScreen({super.key, required this.projectId, required this.workspaceId});
 
   @override
   ConsumerState<ProjectMembersScreen> createState() => _ProjectMembersScreenState();
@@ -22,50 +24,106 @@ class _ProjectMembersScreenState extends ConsumerState<ProjectMembersScreen> {
     // We will fetch members here later
   }
 
-  void _showInviteDialog(BuildContext context, ThemeData theme) {
-    final emailController = TextEditingController();
-    showDialog(
+  void _showInviteBottomSheet(BuildContext context, ThemeData theme) {
+    showModalBottomSheet(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Invite Member'),
-        content: TextField(
-          controller: emailController,
-          decoration: const InputDecoration(
-            hintText: 'Enter member email',
-            labelText: 'Email',
-          ),
-          keyboardType: TextInputType.emailAddress,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (emailController.text.trim().isEmpty) return;
-              Navigator.pop(ctx);
-              
-              final success = await ref.read(projectMembersProvider(widget.projectId).notifier)
-                  .inviteMember(emailController.text.trim());
-                  
-              if (mounted) {
-                if (success) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Member invited successfully!'), backgroundColor: AppColors.success),
-                  );
-                } else {
-                  final error = ref.read(projectMembersProvider(widget.projectId)).error;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(error ?? 'Failed to invite member'), backgroundColor: AppColors.error),
-                  );
-                }
-              }
-            },
-            child: const Text('Invite'),
-          ),
-        ],
+      isScrollControlled: true,
+      backgroundColor: theme.scaffoldBackgroundColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSizes.radiusXl)),
       ),
+      builder: (ctx) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.6,
+          minChildSize: 0.4,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (context, scrollController) {
+            return Consumer(
+              builder: (context, ref, child) {
+                final wsMembersState = ref.watch(workspaceMembersProvider(widget.workspaceId));
+                final projMembersState = ref.watch(projectMembersProvider(widget.projectId));
+                
+                final wsMembers = wsMembersState.members;
+                final projMemberIds = projMembersState.members.map((m) => m.id).toSet();
+                
+                final availableMembers = wsMembers.where((m) => !projMemberIds.contains(m.id)).toList();
+
+                return Column(
+                  children: [
+                    Container(
+                      margin: const EdgeInsets.symmetric(vertical: AppSizes.md),
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: AppColors.grey400,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(AppSizes.lg),
+                      child: Text(
+                        'Add Workspace Member to Project',
+                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    Expanded(
+                      child: wsMembersState.isLoading && wsMembers.isEmpty
+                          ? const Center(child: CircularProgressIndicator())
+                          : availableMembers.isEmpty
+                              ? Center(
+                                  child: Text(
+                                    'No available workspace members to add.',
+                                    style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.grey600),
+                                  ),
+                                )
+                              : ListView.separated(
+                                  controller: scrollController,
+                                  itemCount: availableMembers.length,
+                                  separatorBuilder: (_, __) => Divider(height: 1, color: theme.dividerColor),
+                                  itemBuilder: (context, index) {
+                                    final member = availableMembers[index];
+                                    return ListTile(
+                                      leading: CircleAvatar(
+                                        backgroundColor: AppColors.primary,
+                                        child: Text(
+                                          member.fullName.isNotEmpty ? member.fullName[0].toUpperCase() : '?',
+                                          style: const TextStyle(color: Colors.white),
+                                        ),
+                                      ),
+                                      title: Text(member.fullName),
+                                      subtitle: Text(member.email),
+                                      trailing: TextButton(
+                                        onPressed: () async {
+                                          Navigator.pop(context);
+                                          final success = await ref.read(projectMembersProvider(widget.projectId).notifier)
+                                              .inviteMember(member.email);
+                                          if (mounted) {
+                                            if (success) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(content: Text('Member added successfully!'), backgroundColor: AppColors.success),
+                                              );
+                                            } else {
+                                              final error = ref.read(projectMembersProvider(widget.projectId)).error;
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(content: Text(error ?? 'Failed to add member'), backgroundColor: AppColors.error),
+                                              );
+                                            }
+                                          }
+                                        },
+                                        child: const Text('Add'),
+                                      ),
+                                    );
+                                  },
+                                ),
+                    ),
+                  ],
+                );
+              },
+            );
+          },
+        );
+      },
     );
   }
 
@@ -96,9 +154,9 @@ class _ProjectMembersScreenState extends ConsumerState<ProjectMembersScreen> {
         actions: [
           if (isAdminOrOwner)
             TextButton.icon(
-              onPressed: () => _showInviteDialog(context, theme),
+              onPressed: () => _showInviteBottomSheet(context, theme),
               icon: const Icon(Icons.person_add_rounded, color: AppColors.primary),
-              label: const Text('Invite', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+              label: const Text('Add Member', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
             ),
           const SizedBox(width: AppSizes.sm),
         ],
@@ -114,13 +172,13 @@ class _ProjectMembersScreenState extends ConsumerState<ProjectMembersScreen> {
               ),
               itemBuilder: (context, index) {
                 final member = members[index];
-                return _buildMemberRow(member, index, theme, isOwner);
+                return _buildMemberRow(member, index, theme, isOwner, isAdminOrOwner);
               },
             ),
     );
   }
 
-  Widget _buildMemberRow(UserEntity member, int index, ThemeData theme, bool isOwner) {
+  Widget _buildMemberRow(UserEntity member, int index, ThemeData theme, bool isOwner, bool isAdminOrOwner) {
     final roleText = member.role ?? 'Member';
     final isAdmin = roleText.toLowerCase() == 'admin' || roleText.toLowerCase() == 'owner' || roleText.toLowerCase() == 'leader';
     final roleColor = isAdmin ? Colors.orange : AppColors.grey400;
@@ -176,33 +234,80 @@ class _ProjectMembersScreenState extends ConsumerState<ProjectMembersScreen> {
           ),
         ),
         const SizedBox(width: AppSizes.sm),
-        if (isOwner)
+        const SizedBox(width: AppSizes.sm),
+        if (isAdminOrOwner)
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert_rounded, color: AppColors.grey400),
             onSelected: (value) async {
-              final success = await ref.read(projectMembersProvider(widget.projectId).notifier)
-                  .updateRole(member.id, value);
-              if (mounted) {
-                if (success) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Role updated to $value'), backgroundColor: AppColors.success),
-                  );
-                } else {
-                  final error = ref.read(projectMembersProvider(widget.projectId)).error;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(error ?? 'Failed to update role'), backgroundColor: AppColors.error),
-                  );
+              if (value == 'remove') {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Remove Member?'),
+                    content: Text('Are you sure you want to remove ${member.fullName} from the project?'),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        child: const Text('Remove', style: TextStyle(color: Colors.red)),
+                      ),
+                    ],
+                  ),
+                );
+
+                if (confirm == true) {
+                  final success = await ref.read(projectMembersProvider(widget.projectId).notifier)
+                      .removeMember(member.id);
+                  if (mounted) {
+                    if (success) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Member removed from project'), backgroundColor: AppColors.success),
+                      );
+                    } else {
+                      final error = ref.read(projectMembersProvider(widget.projectId)).error;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(error ?? 'Failed to remove member'), backgroundColor: AppColors.error),
+                      );
+                    }
+                  }
+                }
+              } else {
+                final success = await ref.read(projectMembersProvider(widget.projectId).notifier)
+                    .updateRole(member.id, value);
+                if (mounted) {
+                  if (success) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Role updated to $value'), backgroundColor: AppColors.success),
+                    );
+                  } else {
+                    final error = ref.read(projectMembersProvider(widget.projectId)).error;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(error ?? 'Failed to update role'), backgroundColor: AppColors.error),
+                    );
+                  }
                 }
               }
             },
             itemBuilder: (context) => [
+              if (isOwner) ...[
+                const PopupMenuItem(
+                  value: 'Admin',
+                  child: Text('Make Admin'),
+                ),
+                const PopupMenuItem(
+                  value: 'Member',
+                  child: Text('Make Member'),
+                ),
+              ],
               const PopupMenuItem(
-                value: 'Admin',
-                child: Text('Make Admin'),
-              ),
-              const PopupMenuItem(
-                value: 'Member',
-                child: Text('Make Member'),
+                value: 'remove',
+                child: Row(
+                  children: [
+                    Icon(Icons.person_remove_rounded, color: Colors.red, size: 20),
+                    SizedBox(width: 8),
+                    Text('Remove from Project', style: TextStyle(color: Colors.red)),
+                  ],
+                ),
               ),
             ],
           ),

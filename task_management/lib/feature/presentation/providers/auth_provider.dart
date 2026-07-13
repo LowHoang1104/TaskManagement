@@ -66,6 +66,25 @@ class AuthNotifier extends StateNotifier<AuthState> {
     await _service.logout();
     state = AuthState();
   }
+
+  Future<bool> changePassword(String currentPassword, String newPassword) async {
+    state = state.copyWith(isLoading: true, error: null);
+    
+    final result = await _service.changePassword(currentPassword, newPassword);
+    
+    return result.fold(
+      (error) {
+        // Retain the current user, just update error state
+        state = AuthState(isLoading: false, error: error, user: state.user);
+        return false;
+      },
+      (_) {
+        // Success, clear error
+        state = AuthState(isLoading: false, user: state.user);
+        return true;
+      },
+    );
+  }
 }
 
 final authNotifierProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {

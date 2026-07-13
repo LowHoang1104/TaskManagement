@@ -20,6 +20,7 @@ namespace TaskApi.Data
         public DbSet<Tag> Tags { get; set; }
         public DbSet<TaskTag> TaskTags { get; set; }
         public DbSet<ActivityLog> ActivityLogs { get; set; }
+        public DbSet<TaskDependency> TaskDependencies { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -85,6 +86,19 @@ namespace TaskApi.Data
                 .WithMany()
                 .HasForeignKey(t => t.ReporterId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // TaskDependency relationships
+            modelBuilder.Entity<TaskDependency>()
+                .HasOne(td => td.PredecessorTask)
+                .WithMany(t => t.DependentTasks) // tasks that depend on this task
+                .HasForeignKey(td => td.PredecessorTaskId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<TaskDependency>()
+                .HasOne(td => td.SuccessorTask)
+                .WithMany(t => t.Dependencies) // tasks that this task depends on
+                .HasForeignKey(td => td.SuccessorTaskId)
+                .OnDelete(DeleteBehavior.Restrict); // Prevent multiple cascade paths
 
             // Workspace Owner
             modelBuilder.Entity<Workspace>()

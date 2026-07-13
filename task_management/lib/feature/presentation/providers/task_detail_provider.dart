@@ -5,6 +5,7 @@ import '../../domain/entities/entities.dart';
 import '../../application/i_services/i_task_service.dart';
 import '../../application/i_services/i_comment_service.dart';
 import '../../application/i_services/i_attachment_service.dart';
+import 'task_provider.dart';
 
 class TaskDetailState {
   final TaskEntity task;
@@ -106,6 +107,22 @@ class TaskDetailNotifier extends StateNotifier<TaskDetailState> {
       },
       (successTask) {
         state = state.copyWith(task: successTask);
+      },
+    );
+  }
+
+  Future<void> updateTaskAssignee(String? assigneeId, WidgetRef ref) async {
+    final oldTask = state.task;
+    final updatedTask = state.task.copyWith(assigneeId: assigneeId);
+    state = state.copyWith(task: updatedTask);
+
+    final result = await _taskRepository.updateTaskAssignee(state.task.projectId, state.task.id, assigneeId);
+    result.fold(
+      (error) => state = state.copyWith(task: oldTask, error: error),
+      (task) {
+        state = state.copyWith(task: task);
+        // Also update the board state
+        ref.read(taskNotifierProvider(task.projectId).notifier).updateTaskAssigneeLocally(task);
       },
     );
   }

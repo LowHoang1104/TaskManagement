@@ -7,6 +7,8 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../providers/workspace_provider.dart';
 import '../../providers/notification_provider.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/workspace_members_provider.dart';
 import '../notification/notification_screen.dart';
 
 class WorkspaceListScreen extends ConsumerWidget {
@@ -17,6 +19,7 @@ class WorkspaceListScreen extends ConsumerWidget {
     final theme = Theme.of(context);
     final workspaceState = ref.watch(workspaceNotifierProvider);
     final workspaces = workspaceState.workspaces;
+    final currentUser = ref.watch(authNotifierProvider).user;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -29,7 +32,7 @@ class WorkspaceListScreen extends ConsumerWidget {
           slivers: [
             // Collapsible Image Header
             SliverAppBar(
-              expandedHeight: 280,
+              expandedHeight: 180,
               floating: false,
               pinned: true,
               backgroundColor: AppColors.primary,
@@ -53,7 +56,7 @@ class WorkspaceListScreen extends ConsumerWidget {
                             top: 8,
                             child: Container(
                               padding: const EdgeInsets.all(4),
-                              decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                              decoration: const BoxDecoration(color: AppColors.error, shape: BoxShape.circle),
                               child: Text(
                                 unreadCount.toString(),
                                 style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
@@ -82,22 +85,24 @@ class WorkspaceListScreen extends ConsumerWidget {
                     Container(
                       decoration: const BoxDecoration(
                         gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [Color(0xFFDBEAFE), Color(0xFFEFF6FF)], // Soft Blue/Teal gradient
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Color(0xFF8B5CF6), Color(0xFF3B82F6)], // Primary to Secondary
                         ),
                       ),
                     ),
                     
-                    // Generated 3D Illustration
+                    // Decorative shapes (optional)
                     Positioned(
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      child: Image.asset(
-                        'assets/images/workspace_illustration.png',
-                        fit: BoxFit.cover,
+                      top: -50,
+                      right: -50,
+                      child: Container(
+                        width: 200,
+                        height: 200,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withValues(alpha: 0.1),
+                        ),
                       ),
                     ),
 
@@ -111,30 +116,19 @@ class WorkspaceListScreen extends ConsumerWidget {
                           Text(
                             'Your Workspaces',
                             style: theme.textTheme.headlineMedium?.copyWith(
-                              fontWeight: FontWeight.w800,
-                              color: theme.colorScheme.onSurface,
-                              shadows: [
-                                Shadow(
-                                  color: Colors.white.withValues(alpha: 0.8),
-                                  blurRadius: 10,
-                                )
-                              ],
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                              letterSpacing: -0.5,
                             ),
-                          ).animate().fadeIn(delay: 200.ms).slideX(),
+                          ).animate().fadeIn(delay: 100.ms).slideX(),
                           const SizedBox(height: 4),
                           Text(
                             'Select a workspace to view projects',
                             style: theme.textTheme.bodyMedium?.copyWith(
                               fontWeight: FontWeight.w500,
-                              color: theme.colorScheme.onSurface.withOpacity(0.8),
-                              shadows: [
-                                Shadow(
-                                  color: Colors.white.withValues(alpha: 0.8),
-                                  blurRadius: 10,
-                                )
-                              ],
+                              color: Colors.white.withValues(alpha: 0.9),
                             ),
-                          ).animate().fadeIn(delay: 300.ms).slideX(),
+                          ).animate().fadeIn(delay: 200.ms).slideX(),
                         ],
                       ),
                     ),
@@ -155,7 +149,7 @@ class WorkspaceListScreen extends ConsumerWidget {
                         crossAxisCount: 2,
                         crossAxisSpacing: AppSizes.md,
                         mainAxisSpacing: AppSizes.md,
-                        childAspectRatio: 0.85,
+                        childAspectRatio: 1.15,
                       ),
                       delegate: SliverChildBuilderDelegate(
                         (context, index) {
@@ -163,7 +157,7 @@ class WorkspaceListScreen extends ConsumerWidget {
                             return _buildAddWorkspaceCard(context, ref, theme);
                           }
                           final ws = workspaces[index];
-                          return _buildWorkspaceCard(context, ref, ws, theme, index);
+                          return _buildWorkspaceCard(context, ref, ws, theme, index, currentUser?.id);
                         },
                         childCount: workspaces.length + 1,
                       ),
@@ -217,7 +211,7 @@ class WorkspaceListScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildWorkspaceCard(BuildContext context, WidgetRef ref, dynamic ws, ThemeData theme, int index) {
+  Widget _buildWorkspaceCard(BuildContext context, WidgetRef ref, dynamic ws, ThemeData theme, int index, String? currentUserId) {
     return GestureDetector(
       onTap: () {
         // Navigate to project detail (dashboard for this workspace)
@@ -254,7 +248,9 @@ class WorkspaceListScreen extends ConsumerWidget {
                 PopupMenuButton<String>(
                   icon: const Icon(Icons.more_vert, color: AppColors.grey600),
                   onSelected: (value) async {
-                    if (value == 'delete') {
+                    if (value == 'members') {
+                      Navigator.pushNamed(context, AppRoutes.workspaceMembers, arguments: ws.id);
+                    } else if (value == 'delete') {
                       final confirm = await showDialog<bool>(
                         context: context,
                         builder: (ctx) => AlertDialog(
@@ -279,19 +275,67 @@ class WorkspaceListScreen extends ConsumerWidget {
                           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error ?? 'Failed to delete workspace')));
                         }
                       }
+                    } else if (value == 'leave') {
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Leave Workspace?'),
+                          content: const Text('Are you sure you want to leave this workspace?'),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, true),
+                              child: const Text('Leave', style: TextStyle(color: Colors.red)),
+                            ),
+                          ],
+                        ),
+                      );
+                      
+                      if (confirm == true && currentUserId != null) {
+                        final success = await ref.read(workspaceMembersProvider(ws.id).notifier).removeMember(currentUserId);
+                        if (success && context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Left workspace successfully')));
+                          ref.read(workspaceNotifierProvider.notifier).fetchWorkspaces(); // Refresh list
+                        } else if (context.mounted) {
+                          final error = ref.read(workspaceMembersProvider(ws.id)).error;
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error ?? 'Failed to leave workspace')));
+                        }
+                      }
                     }
                   },
                   itemBuilder: (context) => [
                     const PopupMenuItem(
-                      value: 'delete',
+                      value: 'members',
                       child: Row(
                         children: [
-                          Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                          Icon(Icons.group_rounded, color: AppColors.primary, size: 20),
                           SizedBox(width: 8),
-                          Text('Delete', style: TextStyle(color: Colors.red)),
+                          Text('Members', style: TextStyle(color: AppColors.primary)),
                         ],
                       ),
                     ),
+                    if (currentUserId == ws.ownerId)
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                            SizedBox(width: 8),
+                            Text('Delete', style: TextStyle(color: Colors.red)),
+                          ],
+                        ),
+                      )
+                    else
+                      const PopupMenuItem(
+                        value: 'leave',
+                        child: Row(
+                          children: [
+                            Icon(Icons.exit_to_app_rounded, color: Colors.red, size: 20),
+                            SizedBox(width: 8),
+                            Text('Leave Workspace', style: TextStyle(color: Colors.red)),
+                          ],
+                        ),
+                      ),
                   ],
                 ),
               ],

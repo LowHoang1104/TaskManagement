@@ -1,5 +1,4 @@
-/// Base URL for the API.
-const String kBaseUrl = 'http://127.0.0.1:5058/api';
+const String kBaseUrl = 'http://10.0.2.2:5058/api';
 
 /// Timeout durations (in seconds).
 const int kConnectTimeout = 15;
@@ -14,6 +13,7 @@ class AuthEndpoints {
   static const String logout = '/auth/logout';
   static const String refreshToken = '/auth/refresh';
   static const String me = '/auth/me';
+  static const String changePassword = '/auth/change-password';
 }
 
 /// User endpoints
@@ -29,6 +29,8 @@ class WorkspaceEndpoints {
   static String byId(String id) => '/workspaces/$id';
   static String members(String id) => '/workspaces/$id/members';
   static String delete(String id) => '/workspaces/$id';
+  static String memberRole(String id, String userId) => '/workspaces/$id/members/$userId/role';
+  static String member(String id, String userId) => '/workspaces/$id/members/$userId';
 }
 
 /// Project endpoints
@@ -40,6 +42,8 @@ class ProjectEndpoints {
       '/workspaces/$workspaceId/projects';
   static String members(String id) => '/projects/$id/members';
   static String delete(String workspaceId, String id) => '/workspaces/$workspaceId/projects/$id';
+  static String memberRole(String projectId, String userId) => '/projects/$projectId/members/$userId/role';
+  static String member(String projectId, String userId) => '/projects/$projectId/members/$userId';
 }
 
 /// Task endpoints

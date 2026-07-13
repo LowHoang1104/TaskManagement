@@ -13,3 +13,4 @@ export 'notification_entity.dart';
 export 'tag_entity.dart';
 export 'task_tag_entity.dart';
 export 'review_history_entity.dart';
+export 'dashboard_entity.dart';

@@ -11,4 +11,5 @@ abstract class IProjectService {
   Future<Either<String, bool>> declineProjectInvitation(String projectId);
   Future<Either<String, bool>> deleteProject(String workspaceId, String id);
   Future<Either<String, bool>> leaveProject(String projectId);
+  Future<Either<String, bool>> removeProjectMember(String projectId, String userId);
 }

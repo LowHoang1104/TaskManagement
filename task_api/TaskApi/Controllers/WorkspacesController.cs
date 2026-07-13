@@ -51,5 +51,76 @@ namespace TaskApi.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
+        [HttpGet("{id}/members")]
+        public async Task<IActionResult> GetWorkspaceMembers(string id)
+        {
+            try
+            {
+                var members = await _workspaceService.GetWorkspaceMembersAsync(id, GetUserId());
+                return Ok(members);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(403, new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPost("{id}/members")]
+        public async Task<IActionResult> InviteWorkspaceMember(string id, [FromBody] InviteMemberRequest request)
+        {
+            try
+            {
+                var member = await _workspaceService.InviteWorkspaceMemberAsync(id, request.Email, GetUserId());
+                return Ok(member);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(403, new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPut("{id}/members/{userId}/role")]
+        public async Task<IActionResult> UpdateWorkspaceMemberRole(string id, string userId, [FromBody] UpdateRoleRequest request)
+        {
+            try
+            {
+                var member = await _workspaceService.UpdateWorkspaceMemberRoleAsync(id, userId, request.Role, GetUserId());
+                return Ok(member);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(403, new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpDelete("{id}/members/{userId}")]
+        public async Task<IActionResult> RemoveWorkspaceMember(string id, string userId)
+        {
+            try
+            {
+                await _workspaceService.RemoveWorkspaceMemberAsync(id, userId, GetUserId());
+                return Ok(new { message = "Member removed successfully." });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(403, new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
     }
 }
