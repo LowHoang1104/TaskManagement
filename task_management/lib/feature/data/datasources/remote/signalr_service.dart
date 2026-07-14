@@ -5,7 +5,7 @@ class SignalRService {
   HubConnection? _hubConnection;
   
   // Update this to your actual backend URL when testing on a real device
-  final String serverUrl = "https://10.0.2.2:5001/hubs/notifications"; // Android Emulator localhost
+  final String serverUrl = "http://localhost:5058/hubs/notifications"; // Web / localhost
 
   SignalRService() {
     _initConnection();
