@@ -2,20 +2,16 @@ import 'package:flutter/material.dart';
 import '../../feature/presentation/screens/auth/splash_screen.dart';
 import '../../feature/presentation/screens/auth/login_screen.dart';
 import '../../feature/presentation/screens/auth/register_screen.dart';
-import '../../feature/presentation/screens/workspace/workspace_list_screen.dart';
-import '../../feature/presentation/screens/workspace/project_dashboard_screen.dart';
-import '../../feature/presentation/screens/workspace/workspace_members_screen.dart';
-import '../../feature/presentation/screens/project/project_members_screen.dart';
-import '../../feature/presentation/screens/task/task_board_screen.dart';
-import '../../feature/presentation/screens/task/task_detail_screen.dart';
+import '../../feature/presentation/screens/auth/verify_email_screen.dart';
 import '../../feature/presentation/screens/profile/profile_screen.dart';
 import '../../feature/presentation/screens/profile/change_password_screen.dart';
-import '../../feature/presentation/screens/analytics/analytics_screen.dart';
-import '../../feature/domain/entities/entities.dart';
+import '../../feature/presentation/taskflow/screens/taskflow_shell.dart';
 import 'app_routes.dart';
 
-/// Centralized route generator.
-/// Each feature team adds their own case here when they create screens.
+/// Centralized route generator. The app now runs entirely on the redesigned
+/// TaskFlow UI — navigation into projects/tasks/etc. happens inside
+/// [TaskFlowShell] via in-tree `Navigator.push`, so only the top-level
+/// destinations need named routes here.
 class AppRouter {
   AppRouter._();
 
@@ -31,70 +27,20 @@ class AppRouter {
       case AppRoutes.register:
         return _build(const RegisterScreen(), settings);
 
-      // ── Workspace ────────────────────────────────────────────────────────
-      case AppRoutes.workspaceList:
-        return _build(const WorkspaceListScreen(), settings);
+      case AppRoutes.verifyEmail:
+        final email = settings.arguments as String? ?? 'an.nguyen@acme.co';
+        return _build(VerifyEmailScreen(email: email), settings);
 
-      case AppRoutes.workspaceDetail:
-        // Or route it to the specific workspace detail if we make one
-        return _build(const _PlaceholderScreen(title: 'Workspace Detail'), settings);
+      // ── Home shell (redesigned TaskFlow) ─────────────────────────────────
+      case AppRoutes.home:
+        return _build(const TaskFlowShell(), settings);
 
-      case AppRoutes.createWorkspace:
-        return _build(const _PlaceholderScreen(title: 'Create Workspace'), settings);
-
-      case AppRoutes.workspaceMembers:
-        final workspaceId = settings.arguments as String? ?? '';
-        return _build(WorkspaceMembersScreen(workspaceId: workspaceId), settings);
-
-      // ─── Project ──────────────────────────────────────────────────────────
-      case AppRoutes.projectDetail:
-        final workspaceId = settings.arguments as String? ?? '';
-        return _build(ProjectDashboardScreen(workspaceId: workspaceId), settings);
-
-      case AppRoutes.createProject:
-        return _build(const _PlaceholderScreen(title: 'Create Project'), settings);
-
-      case AppRoutes.projectMembers:
-        final args = settings.arguments as Map<String, dynamic>? ?? {};
-        final projectId = args['projectId'] as String? ?? '';
-        final workspaceId = args['workspaceId'] as String? ?? '';
-        return _build(ProjectMembersScreen(projectId: projectId, workspaceId: workspaceId), settings);
-
-      // ── Task ─────────────────────────────────────────────────────────────
-      case AppRoutes.taskBoard:
-        if (settings.arguments is Map<String, dynamic>) {
-          final args = settings.arguments as Map<String, dynamic>;
-          return _build(TaskBoardScreen(
-            projectId: args['projectId'] as String,
-            projectName: args['projectName'] as String,
-            workspaceName: args['workspaceName'] as String,
-            workspaceId: args['workspaceId'] as String? ?? '',
-          ), settings);
-        }
-        return _build(TaskBoardScreen(projectId: '', projectName: 'Project', workspaceName: 'Workspace', workspaceId: ''), settings);
-
-      case AppRoutes.taskDetail:
-        final task = settings.arguments as TaskEntity;
-        return _build(TaskDetailScreen(task: task), settings);
-
-      case AppRoutes.createTask:
-        return _build(const _PlaceholderScreen(title: 'Create Task'), settings);
-
-      // ── Profile & Settings ───────────────────────────────────────────────
+      // ── Profile & settings ───────────────────────────────────────────────
       case AppRoutes.profile:
         return _build(const ProfileScreen(), settings);
 
-      case AppRoutes.settings:
-        return _build(const _PlaceholderScreen(title: 'Settings'), settings);
-
       case AppRoutes.changePassword:
         return _build(const ChangePasswordScreen(), settings);
-
-      case AppRoutes.notifications:
-        return _build(const _PlaceholderScreen(title: 'Notifications'), settings);
-
-      case AppRoutes.analytics:
-        return _build(const AnalyticsScreen(), settings);
 
       default:
         return _build(
@@ -109,8 +55,7 @@ class AppRouter {
   }
 }
 
-/// Temporary placeholder screen shown until real screens are implemented.
-/// Each team member replaces the corresponding case in [AppRouter.generateRoute].
+/// Fallback screen for unknown routes.
 class _PlaceholderScreen extends StatelessWidget {
   final String title;
   const _PlaceholderScreen({required this.title});
@@ -123,17 +68,9 @@ class _PlaceholderScreen extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.construction_rounded, size: 48, color: Colors.amber),
+            const Icon(Icons.explore_off_rounded, size: 48),
             const SizedBox(height: 12),
-            Text(
-              title,
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Đang phát triển...',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
+            Text(title, style: Theme.of(context).textTheme.titleLarge),
           ],
         ),
       ),
