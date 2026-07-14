@@ -63,6 +63,14 @@ class AuthRepositoryImp implements IAuthRepository {
         },
       );
 
+      final token = response.data['token'] as String?;
+      if (token != null) {
+        await _secureStorage.saveAccessToken(token);
+      } else {
+        // If register API does not return a token, log the user in automatically
+        return await login(email, password);
+      }
+
       final userJson = response.data['user'] ?? response.data;
       final user = UserEntity(
         id: userJson['id'] ?? '',

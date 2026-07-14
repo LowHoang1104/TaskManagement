@@ -108,55 +108,7 @@ class ProjectDashboardScreen extends ConsumerWidget {
                   },
                   tooltip: 'Workspace Members',
                 ),
-                PopupMenuButton<String>(
-                  icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
-                  onSelected: (value) async {
-                    if (value == 'leave' && currentUser != null) {
-                      final confirm = await showDialog<bool>(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          title: const Text('Leave Workspace?'),
-                          content: const Text('Are you sure you want to leave this workspace?'),
-                          actions: [
-                            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-                            TextButton(
-                              onPressed: () => Navigator.pop(ctx, true),
-                              child: const Text('Leave', style: TextStyle(color: Colors.red)),
-                            ),
-                          ],
-                        ),
-                      );
-
-                      if (confirm == true) {
-                        final success = await ref.read(workspaceMembersProvider(workspaceId).notifier)
-                            .removeMember(currentUser.id);
-                        if (context.mounted) {
-                          if (success) {
-                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Left workspace successfully')));
-                            ref.read(workspaceNotifierProvider.notifier).fetchWorkspaces(); // Refresh list to remove the workspace
-                            Navigator.pushReplacementNamed(context, AppRoutes.workspaceList);
-                          } else {
-                            final error = ref.read(workspaceMembersProvider(workspaceId)).error;
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error ?? 'Failed to leave workspace')));
-                          }
-                        }
-                      }
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    if (!isOwner)
-                      const PopupMenuItem(
-                        value: 'leave',
-                        child: Row(
-                          children: [
-                            Icon(Icons.exit_to_app_rounded, color: Colors.red, size: 20),
-                            SizedBox(width: 8),
-                            Text('Leave Workspace', style: TextStyle(color: Colors.red)),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
+                const SizedBox(width: AppSizes.sm),
               ],
               flexibleSpace: FlexibleSpaceBar(
                 background: Stack(

@@ -59,7 +59,6 @@ class _TaskBoardScreenState extends ConsumerState<TaskBoardScreen> {
                 ],
               ),
               actions: [
-                IconButton(icon: const Icon(Icons.search_rounded), onPressed: () {}),
                 Consumer(
                   builder: (context, ref, child) {
                     final unreadCount = ref.watch(notificationProvider).unreadCount;
@@ -98,7 +97,6 @@ class _TaskBoardScreenState extends ConsumerState<TaskBoardScreen> {
                     });
                   },
                 ),
-                IconButton(icon: const Icon(Icons.more_horiz_rounded), onPressed: () {}),
                 const SizedBox(width: AppSizes.sm),
               ],
             ),
@@ -138,7 +136,7 @@ class _TaskBoardScreenState extends ConsumerState<TaskBoardScreen> {
     final tasks = allTasks.where((t) => t.status == status).toList();
 
     return DragTarget<TaskEntity>(
-      onAcceptWithDetails: (details) {
+      onAcceptWithDetails: (details) async {
         if (details.data.status != status) {
           final task = details.data;
           
@@ -153,6 +151,21 @@ class _TaskBoardScreenState extends ConsumerState<TaskBoardScreen> {
              return; // Stop update
           }
           
+          if (task.status == TaskStatus.done && status != TaskStatus.done) {
+             final confirm = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                   title: const Text('Revert Task?'),
+                   content: const Text('Are you sure you want to pull this task back from Done?'),
+                   actions: [
+                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                      TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Confirm', style: TextStyle(color: Colors.orange))),
+                   ],
+                ),
+             );
+             if (confirm != true) return;
+          }
+
           ref.read(taskNotifierProvider(widget.projectId).notifier).updateTaskStatusLocally(details.data.id, status);
 
           // Auto-assign if unassigned
@@ -201,12 +214,13 @@ class _TaskBoardScreenState extends ConsumerState<TaskBoardScreen> {
                       child: Text('${tasks.length}', style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold, color: color)),
                     ),
                     const SizedBox(width: AppSizes.xs),
-                    IconButton(
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      icon: Icon(Icons.add_rounded, size: 20, color: color),
-                      onPressed: () => _showCreateTaskDialog(context, ref, theme, status),
-                    )
+                    if (status == TaskStatus.todo)
+                      IconButton(
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        icon: Icon(Icons.add_rounded, size: 20, color: color),
+                        onPressed: () => _showCreateTaskDialog(context, ref, theme, status),
+                      )
                   ],
                 ),
               ),
@@ -290,6 +304,10 @@ class _TaskBoardScreenState extends ConsumerState<TaskBoardScreen> {
     
     if (status == TaskStatus.done && !isOwnerOrAdmin) {
       return 'Only project Admins or Owners can mark a task as Done.';
+    }
+
+    if (task.status == TaskStatus.done && status != TaskStatus.done && !isOwnerOrAdmin) {
+      return 'Only project Admins or Owners can pull a task back from Done.';
     }
 
     return null; // Valid

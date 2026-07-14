@@ -37,6 +37,11 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
     final task = taskState.task;
     final notifier = ref.read(taskDetailProvider(widget.task).notifier);
 
+    final projectMembersState = ref.watch(projectMembersProvider(task.projectId));
+    final currentUser = ref.watch(authNotifierProvider).user;
+    final currentMember = projectMembersState.members.where((m) => m.id == currentUser?.id).firstOrNull;
+    final isOwnerOrAdmin = currentMember != null && (currentMember.role == 'Owner' || currentMember.role == 'Admin');
+
     Color statusColor = AppColors.primary;
     if (task.status == TaskStatus.todo) statusColor = AppColors.grey400;
     if (task.status == TaskStatus.doing) statusColor = Colors.blue;
@@ -183,7 +188,15 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                             _buildGridRow(
                               'Assignee', 
                               InkWell(
-                                onTap: () => _showAssigneeDialog(context, task, ref),
+                                onTap: () {
+                                  if (isOwnerOrAdmin) {
+                                    _showAssigneeDialog(context, task, ref);
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Only project Admins or Owners can assign members.'), backgroundColor: Colors.red),
+                                    );
+                                  }
+                                },
                                 child: Text(task.assigneeName ?? 'Unassigned', style: const TextStyle(decoration: TextDecoration.underline, color: AppColors.primary)),
                               ), 
                               'Reporter', 
