@@ -19,6 +19,18 @@ class AuthEndpoints {
   static const String uploadAvatar = '/auth/avatar';
 }
 
+class ApiUtils {
+  static String? getFullImageUrl(String? path) {
+    if (path == null || path.isEmpty) return null;
+    var url = path;
+    if (!url.startsWith('http')) {
+      final baseUrl = kBaseUrl.replaceAll('/api', '');
+      url = url.startsWith('/') ? '$baseUrl$url' : '$baseUrl/$url';
+    }
+    return url;
+  }
+}
+
 /// User endpoints
 class UserEndpoints {
   UserEndpoints._();

@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../domain/entities/entities.dart';
+import '../../../../core/constants/api_endpoints.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/project_members_provider.dart';
@@ -86,10 +87,11 @@ class _ProjectMembersScreenState extends ConsumerState<ProjectMembersScreen> {
                                     return ListTile(
                                       leading: CircleAvatar(
                                         backgroundColor: AppColors.primary,
-                                        child: Text(
+                                        backgroundImage: ApiUtils.getFullImageUrl(member.avatarUrl) != null ? NetworkImage(ApiUtils.getFullImageUrl(member.avatarUrl)!) : null,
+                                        child: ApiUtils.getFullImageUrl(member.avatarUrl) == null ? Text(
                                           member.fullName.isNotEmpty ? member.fullName[0].toUpperCase() : '?',
                                           style: const TextStyle(color: Colors.white),
-                                        ),
+                                        ) : null,
                                       ),
                                       title: Text(member.fullName),
                                       subtitle: Text(member.email),
@@ -183,12 +185,17 @@ class _ProjectMembersScreenState extends ConsumerState<ProjectMembersScreen> {
     final isAdmin = roleText.toLowerCase() == 'admin' || roleText.toLowerCase() == 'owner' || roleText.toLowerCase() == 'leader';
     final roleColor = isAdmin ? Colors.orange : AppColors.grey400;
 
+    final avatarUrl = ApiUtils.getFullImageUrl(member.avatarUrl);
+
     return Row(
       children: [
         CircleAvatar(
           radius: 24,
           backgroundColor: AppColors.primary,
-          child: Text(member.fullName[0].toUpperCase(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
+          child: avatarUrl == null 
+              ? Text(member.fullName.isNotEmpty ? member.fullName[0].toUpperCase() : '?', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
+              : null,
         ),
         const SizedBox(width: AppSizes.md),
         Expanded(

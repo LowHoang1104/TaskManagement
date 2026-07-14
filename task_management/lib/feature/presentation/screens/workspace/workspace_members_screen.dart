@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../domain/entities/entities.dart';
+import '../../../../core/constants/api_endpoints.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/workspace_members_provider.dart';
@@ -124,12 +125,17 @@ class _WorkspaceMembersScreenState extends ConsumerState<WorkspaceMembersScreen>
     final isAdmin = roleText.toLowerCase() == 'admin' || roleText.toLowerCase() == 'owner';
     final roleColor = isAdmin ? Colors.orange : AppColors.grey400;
 
+    final avatarUrl = ApiUtils.getFullImageUrl(member.avatarUrl);
+
     return Row(
       children: [
         CircleAvatar(
           radius: 24,
           backgroundColor: AppColors.primary,
-          child: Text(member.fullName.isNotEmpty ? member.fullName[0].toUpperCase() : '?', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
+          child: avatarUrl == null 
+              ? Text(member.fullName.isNotEmpty ? member.fullName[0].toUpperCase() : '?', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
+              : null,
         ),
         const SizedBox(width: AppSizes.md),
         Expanded(
