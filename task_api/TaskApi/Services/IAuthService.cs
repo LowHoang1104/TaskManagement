@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using TaskApi.DTOs;
 
 namespace TaskApi.Services
@@ -6,5 +7,6 @@ namespace TaskApi.Services
     {
         Task<AuthResponse?> LoginAsync(LoginRequest request);
         Task<AuthResponse> RegisterAsync(RegisterRequest request);
+        Task<UserDto> UploadAvatarAsync(string userId, IFormFile avatar);
     }
 }

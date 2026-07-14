@@ -72,6 +72,7 @@ class MockAuthNotifier extends StateNotifier<AuthState> implements AuthNotifier 
   @override Future<void> logout() async {}
   @override Future<void> checkAuthStatus() async {}
   @override Future<bool> changePassword(String c, String n) async => true;
+  @override Future<bool> uploadAvatar({required String fileName, required List<int> fileBytes}) async => true;
 }
 
 class MockProjectMembersNotifier extends StateNotifier<ProjectMembersState> implements ProjectMembersNotifier {
@@ -98,7 +99,7 @@ void main() {
   late MockProjectMembersNotifier mockProjectMembersNotifier;
 
   const tProjectId = 'p1';
-  final tUser = UserEntity(id: 'u1', email: 'test@test.com', fullName: 'Test User', passwordHash: 'hash', createdAt: DateTime.now(), updatedAt: DateTime.now());
+  final tUser = UserEntity(id: 'u1', email: 'test@test.com', fullName: 'Test User', passwordHash: 'hash', role: 'Owner', createdAt: DateTime.now(), updatedAt: DateTime.now());
   final tTask = TaskEntity(id: 't1-00000', title: 'Task 1', description: 'Desc 1', projectId: tProjectId, status: TaskStatus.todo, priority: TaskPriority.high, reporterId: 'u1', assigneeId: 'u1', assigneeName: 'Test User', reporterName: 'Test User', order: 1, createdAt: DateTime.now(), updatedAt: DateTime.now(), dependencies: const []);
   final tComment = CommentEntity(id: 'c1', taskId: 't1-00000', userId: 'u1', userFullName: 'Test User', content: 'This is a comment', createdAt: DateTime.now());
 

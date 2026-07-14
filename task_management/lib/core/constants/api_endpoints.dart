@@ -16,6 +16,7 @@ class AuthEndpoints {
   static const String refreshToken = '/auth/refresh';
   static const String me = '/auth/me';
   static const String changePassword = '/auth/change-password';
+  static const String uploadAvatar = '/auth/avatar';
 }
 
 /// User endpoints

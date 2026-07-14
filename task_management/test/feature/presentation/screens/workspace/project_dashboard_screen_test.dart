@@ -40,11 +40,11 @@ class MockAuthNotifier extends StateNotifier<AuthState> implements AuthNotifier 
   MockAuthNotifier(super.state);
   @override
   Future<bool> login(String email, String password) async => true;
-  @override
-  Future<bool> register(String fullName, String email, String password) async => true;
+  @override Future<bool> register(String fullName, String email, String password) async => true;
   @override Future<void> logout() async {}
   @override Future<void> checkAuthStatus() async {}
   @override Future<bool> changePassword(String c, String n) async => true;
+  @override Future<bool> uploadAvatar({required String fileName, required List<int> fileBytes}) async => true;
 }
 
 class MockWorkspaceMembersNotifier extends StateNotifier<WorkspaceMembersState> implements WorkspaceMembersNotifier {

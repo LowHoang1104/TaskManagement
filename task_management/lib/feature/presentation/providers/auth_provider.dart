@@ -85,6 +85,23 @@ class AuthNotifier extends StateNotifier<AuthState> {
       },
     );
   }
+
+  Future<bool> uploadAvatar({required String fileName, required List<int> fileBytes}) async {
+    state = state.copyWith(isLoading: true, error: null);
+    
+    final result = await _service.uploadAvatar(fileName: fileName, fileBytes: fileBytes);
+    
+    return result.fold(
+      (error) {
+        state = AuthState(isLoading: false, error: error, user: state.user);
+        return false;
+      },
+      (user) {
+        state = AuthState(isLoading: false, user: user);
+        return true;
+      },
+    );
+  }
 }
 
 final authNotifierProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {

@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using TaskApi.DTOs;
 using TaskApi.Services;
 
@@ -35,6 +37,27 @@ namespace TaskApi.Controllers
             var response = await _authService.LoginAsync(request);
             if (response == null) return Unauthorized(new { message = "Invalid email or password." });
             return Ok(response);
+        }
+
+        [HttpPost("avatar")]
+        [Authorize]
+        public async Task<IActionResult> UploadAvatar(IFormFile avatar)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            if (avatar == null || avatar.Length == 0)
+                return BadRequest(new { message = "Không tìm thấy ảnh." });
+
+            try
+            {
+                var userDto = await _authService.UploadAvatarAsync(userId, avatar);
+                return Ok(new { user = userDto });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
     }
 }

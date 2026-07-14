@@ -21,6 +21,8 @@ class MockAuthNotifier extends StateNotifier<AuthState> implements AuthNotifier 
   Future<void> checkAuthStatus() async {}
   @override
   Future<bool> changePassword(String currentPassword, String newPassword) async => true;
+  @override
+  Future<bool> uploadAvatar({required String fileName, required List<int> fileBytes}) async => true;
 }
 
 class MockDashboardNotifier extends StateNotifier<AsyncValue<DashboardEntity>> implements DashboardNotifier {

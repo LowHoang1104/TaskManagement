@@ -64,6 +64,7 @@ dependencies:
   sentry_flutter: ^8.14.2
   fl_chart: ^1.2.0
   timeago: ^3.7.1
+  image_picker: ^1.2.3
 
 dev_dependencies:
   flutter_test:

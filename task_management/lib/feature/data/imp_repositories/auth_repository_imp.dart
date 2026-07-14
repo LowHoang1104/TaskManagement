@@ -117,4 +117,49 @@ class AuthRepositoryImp implements IAuthRepository {
       return Left(e.toString());
     }
   }
+
+  @override
+  Future<Either<String, UserEntity>> uploadAvatar({required String fileName, required List<int> fileBytes}) async {
+    try {
+      final formData = FormData.fromMap({
+        'avatar': MultipartFile.fromBytes(fileBytes, filename: fileName),
+      });
+
+      final response = await _dio.post(
+        AuthEndpoints.uploadAvatar,
+        data: formData,
+      );
+
+      print('Upload Avatar Response: ${response.data}');
+
+      final userJson = response.data['user'] ?? response.data;
+      
+      String? avatarUrl = userJson['avatarUrl'];
+      if (avatarUrl != null && avatarUrl.isNotEmpty) {
+        if (!avatarUrl.startsWith('http')) {
+          final baseUrl = kBaseUrl.replaceAll('/api', '');
+          avatarUrl = avatarUrl.startsWith('/') ? '$baseUrl$avatarUrl' : '$baseUrl/$avatarUrl';
+        }
+        // Thêm tham số chống cache để Flutter luôn tải ảnh mới nhất nếu cùng 1 URL
+        final separator = avatarUrl.contains('?') ? '&' : '?';
+        avatarUrl = '$avatarUrl${separator}t=${DateTime.now().millisecondsSinceEpoch}';
+      }
+
+      final user = UserEntity(
+        id: userJson['id'] ?? '',
+        fullName: userJson['fullName'] ?? '',
+        email: userJson['email'] ?? '',
+        passwordHash: '',
+        avatarUrl: avatarUrl,
+        createdAt: DateTime.tryParse(userJson['createdAt'] ?? '') ?? DateTime.now(),
+        updatedAt: DateTime.tryParse(userJson['updatedAt'] ?? '') ?? DateTime.now(),
+      );
+
+      return Right(user);
+    } on DioException catch (e) {
+      return Left(e.response?.data?['message'] ?? e.message ?? 'Failed to upload avatar');
+    } catch (e) {
+      return Left(e.toString());
+    }
+  }
 }

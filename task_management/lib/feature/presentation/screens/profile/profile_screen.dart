@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../app/routes/app_routes.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -66,25 +67,60 @@ class ProfileScreen extends ConsumerWidget {
                       right: 0,
                       child: Column(
                         children: [
-                          Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 4),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.2),
-                                  blurRadius: 15,
-                                  offset: const Offset(0, 5),
-                                )
+                          GestureDetector(
+                            onTap: () async {
+                              final picker = ImagePicker();
+                              final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+                              if (pickedFile != null && context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Uploading avatar...')));
+                                final fileBytes = await pickedFile.readAsBytes();
+                                final success = await ref.read(authNotifierProvider.notifier).uploadAvatar(fileName: pickedFile.name, fileBytes: fileBytes);
+                                if (context.mounted) {
+                                  if (success) {
+                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Avatar updated successfully!')));
+                                  } else {
+                                    final error = ref.read(authNotifierProvider).error;
+                                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error ?? 'Failed to upload avatar')));
+                                  }
+                                }
+                              }
+                            },
+                            child: Stack(
+                              alignment: Alignment.bottomRight,
+                              children: [
+                                Container(
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.white, width: 4),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: 0.2),
+                                        blurRadius: 15,
+                                        offset: const Offset(0, 5),
+                                      )
+                                    ],
+                                  ),
+                                  child: CircleAvatar(
+                                    radius: 45,
+                                    backgroundColor: Colors.white,
+                                    backgroundImage: user.avatarUrl != null && user.avatarUrl!.isNotEmpty 
+                                        ? NetworkImage(user.avatarUrl!) 
+                                        : null,
+                                    child: (user.avatarUrl == null || user.avatarUrl!.isEmpty) ? Text(
+                                      user.fullName[0].toUpperCase(), 
+                                      style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: AppColors.primary),
+                                    ) : null,
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: const BoxDecoration(
+                                    color: AppColors.primary,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 16),
+                                ),
                               ],
-                            ),
-                            child: CircleAvatar(
-                              radius: 45,
-                              backgroundColor: Colors.white,
-                              child: Text(
-                                user.fullName[0].toUpperCase(), 
-                                style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: AppColors.primary),
-                              ),
                             ),
                           ).animate().scale(duration: 500.ms, curve: Curves.easeOutBack),
                           const SizedBox(height: AppSizes.md),

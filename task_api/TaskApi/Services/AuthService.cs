@@ -1,4 +1,5 @@
 using AutoMapper;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -61,6 +62,32 @@ namespace TaskApi.Services
                 Token = token,
                 User = _mapper.Map<UserDto>(user)
             };
+        }
+
+        public async Task<UserDto> UploadAvatarAsync(string userId, IFormFile avatar)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null) throw new Exception("User not found");
+
+            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "avatars");
+            if (!Directory.Exists(uploadsFolder))
+                Directory.CreateDirectory(uploadsFolder);
+
+            var fileExtension = Path.GetExtension(avatar.FileName);
+            var uniqueFileName = $"{userId}_{Guid.NewGuid()}{fileExtension}";
+            var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await avatar.CopyToAsync(stream);
+            }
+
+            user.AvatarUrl = $"/uploads/avatars/{uniqueFileName}";
+            
+            _context.Users.Update(user);
+            await _context.SaveChangesAsync();
+
+            return _mapper.Map<UserDto>(user);
         }
 
         private string GenerateJwtToken(User user)
