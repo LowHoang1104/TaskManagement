@@ -127,12 +127,10 @@ class _CreateTaskSheetState extends ConsumerState<_CreateTaskSheet> {
                 cursorColor: p.accent,
                 style: TextStyle(
                     fontSize: 20, fontWeight: FontWeight.w700, color: p.text),
-                decoration: InputDecoration(
-                  isDense: true,
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.only(bottom: 12),
-                  hintText: 'Task title',
+                decoration: tfBareInput(
+                  hint: 'Task title',
                   hintStyle: TextStyle(color: p.text3),
+                  contentPadding: const EdgeInsets.only(bottom: 12),
                 ),
               ),
             ),
@@ -143,11 +141,8 @@ class _CreateTaskSheetState extends ConsumerState<_CreateTaskSheet> {
               minLines: 1,
               style: TextStyle(
                   fontSize: 12.5, fontWeight: FontWeight.w600, color: p.text2),
-              decoration: InputDecoration(
-                isDense: true,
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.zero,
-                hintText: 'Add a description…',
+              decoration: tfBareInput(
+                hint: 'Add a description…',
                 hintStyle: TextStyle(color: p.text3, fontWeight: FontWeight.w600),
               ),
             ),

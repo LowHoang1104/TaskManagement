@@ -4,6 +4,7 @@ import 'package:timeago/timeago.dart' as timeago;
 import '../../../../app/theme/app_palette.dart';
 import '../../../domain/entities/notification_entity.dart';
 import '../../providers/notification_provider.dart';
+import '../../providers/workspace_provider.dart';
 import '../widgets/tf_widgets.dart';
 
 /// Notifications inbox — redesigned UI from `TaskFlow.dc.html` (04 — System),
@@ -262,16 +263,20 @@ class _NotifCard extends ConsumerWidget {
       {required bool accept}) async {
     final p = context.palette;
     final notifier = ref.read(notificationProvider.notifier);
+    // "Invite" notifications are workspace invites — joining a workspace needs
+    // acceptance, whereas project members are added directly.
     final ok = accept
-        ? await notifier.acceptProjectInvite(
+        ? await notifier.acceptWorkspaceInvite(
             notification.relatedId!, notification.id)
-        : await notifier.declineProjectInvite(
+        : await notifier.declineWorkspaceInvite(
             notification.relatedId!, notification.id);
     if (!context.mounted) return;
     if (ok) {
+      // The workspace list changes on accept/decline.
+      ref.invalidate(workspaceNotifierProvider);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text(accept ? 'Invitation accepted' : 'Invitation declined'),
+            content: Text(accept ? 'Đã tham gia workspace' : 'Đã từ chối lời mời'),
             backgroundColor: accept ? p.success : p.text2),
       );
     } else {

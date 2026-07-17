@@ -42,20 +42,18 @@ namespace TaskApi.Services
 
             var projectDtos = _mapper.Map<List<ProjectDto>>(projects);
             
-            // Calculate progress for each project
+            // Task counts + progress for each project
             foreach (var dto in projectDtos)
             {
                 var proj = projects.First(p => p.Id == dto.Id);
                 int totalTasks = proj.Tasks.Count;
-                if (totalTasks == 0)
-                {
-                    dto.Progress = 0;
-                }
-                else
-                {
-                    int doneTasks = proj.Tasks.Count(t => t.Status.Equals("Done", StringComparison.OrdinalIgnoreCase));
-                    dto.Progress = (int)Math.Round((double)doneTasks / totalTasks * 100);
-                }
+                int doneTasks = proj.Tasks.Count(t => t.Status.Equals("done", StringComparison.OrdinalIgnoreCase));
+
+                dto.TaskCount = totalTasks;
+                dto.DoneTaskCount = doneTasks;
+                dto.Progress = totalTasks == 0
+                    ? 0
+                    : (int)Math.Round((double)doneTasks / totalTasks * 100);
             }
 
             return projectDtos;
@@ -170,8 +168,11 @@ namespace TaskApi.Services
                 throw new Exception("User is already a member of this project");
             }
 
+            // Must have actually joined the workspace (a pending invite doesn't count).
             var isWorkspaceMember = await _context.Set<WorkspaceMember>()
-                .AnyAsync(wm => wm.WorkspaceId == project.WorkspaceId && wm.UserId == user.Id);
+                .AnyAsync(wm => wm.WorkspaceId == project.WorkspaceId
+                                && wm.UserId == user.Id
+                                && wm.Status == "Accepted");
 
             if (!isWorkspaceMember && user.Id != project.Workspace.OwnerId)
             {

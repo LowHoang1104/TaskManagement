@@ -107,7 +107,13 @@ namespace TaskApi
             {
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
                 db.Database.Migrate();
-                DbSeeder.Seed(db);
+
+                var webRoot = app.Environment.WebRootPath;
+                if (string.IsNullOrWhiteSpace(webRoot))
+                {
+                    webRoot = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+                }
+                DbSeeder.Seed(db, webRoot);
             }
 
             // Configure the HTTP request pipeline.

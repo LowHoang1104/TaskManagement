@@ -84,7 +84,11 @@ class TaskNotifier extends StateNotifier<TaskState> {
     );
   }
 
-  void updateTaskAssigneeLocally(TaskEntity updatedTask) {
+  void updateTaskAssigneeLocally(TaskEntity updatedTask) => replaceTaskLocally(updatedTask);
+
+  /// Swaps a task in the board list with an updated copy (after it was changed
+  /// from the detail screen), without refetching.
+  void replaceTaskLocally(TaskEntity updatedTask) {
     final updatedTasks = state.tasks.map((t) => t.id == updatedTask.id ? updatedTask : t).toList();
     state = state.copyWith(tasks: updatedTasks);
   }

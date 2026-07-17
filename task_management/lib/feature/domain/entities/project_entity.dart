@@ -5,6 +5,14 @@ class ProjectEntity {
   final String? description;
   final String ownerId;
   final int progress;
+
+  /// Total number of tasks in the project.
+  final int taskCount;
+
+  /// Number of tasks with status "done" — together these drive the
+  /// "3 / 14 tasks" label on the project card.
+  final int doneTaskCount;
+
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -15,6 +23,8 @@ class ProjectEntity {
     this.description,
     required this.ownerId,
     this.progress = 0,
+    this.taskCount = 0,
+    this.doneTaskCount = 0,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -26,6 +36,8 @@ class ProjectEntity {
     String? description,
     String? ownerId,
     int? progress,
+    int? taskCount,
+    int? doneTaskCount,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -36,6 +48,8 @@ class ProjectEntity {
       description: description ?? this.description,
       ownerId: ownerId ?? this.ownerId,
       progress: progress ?? this.progress,
+      taskCount: taskCount ?? this.taskCount,
+      doneTaskCount: doneTaskCount ?? this.doneTaskCount,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

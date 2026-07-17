@@ -68,6 +68,28 @@ namespace TaskApi.Services
                 .FirstOrDefaultAsync(t => t.Id == taskId);
             if (task == null) throw new Exception("Task not found");
 
+            var member = await _context.Set<ProjectMember>()
+                .FirstOrDefaultAsync(m => m.ProjectId == task.ProjectId && m.UserId == actorId);
+
+            if (member == null)
+            {
+                throw new UnauthorizedAccessException("You are not a member of this project.");
+            }
+
+            var isManager = member.Role == "Owner" || member.Role == "Admin";
+
+            // Setting a deadline or (re)assigning a task is a manager action.
+            // Members may still move a task's status, edit title/description, etc.
+            if (request.Deadline != null && request.Deadline != task.Deadline && !isManager)
+            {
+                throw new UnauthorizedAccessException("Chỉ Owner/Admin mới được chỉnh deadline.");
+            }
+
+            if (request.AssigneeId != null && request.AssigneeId != task.AssigneeId && !isManager)
+            {
+                throw new UnauthorizedAccessException("Chỉ Owner/Admin mới được giao task.");
+            }
+
             _mapper.Map(request, task);
             task.UpdatedAt = DateTime.UtcNow;
 

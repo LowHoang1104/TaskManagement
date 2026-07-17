@@ -121,6 +121,48 @@ class TaskRepositoryImp implements ITaskRepository {
   }
 
   @override
+  Future<Either<String, TaskEntity>> updateTaskDeadline(
+      String projectId, String taskId, DateTime deadline) async {
+    try {
+      final response = await _dio.put(
+        '${TaskEndpoints.byProject(projectId)}/$taskId',
+        data: {'deadline': deadline.toIso8601String()},
+      );
+
+      final json = response.data;
+      final task = TaskEntity(
+        id: json['id'],
+        projectId: json['projectId'],
+        title: json['title'],
+        description: json['description'],
+        status: TaskStatus.values.firstWhere(
+            (e) => e.toString().split('.').last == json['status']?.toString().toLowerCase(),
+            orElse: () => TaskStatus.todo),
+        priority: TaskPriority.values.firstWhere(
+            (e) => e.toString().split('.').last == json['priority']?.toString().toLowerCase(),
+            orElse: () => TaskPriority.medium),
+        assigneeId: json['assigneeId'],
+        reporterId: json['reporterId'] ?? 'unknown',
+        assigneeName: json['assigneeName'],
+        reporterName: json['reporterName'],
+        reviewerId: json['reviewerId'],
+        order: json['order'] ?? 0,
+        deadline: json['deadline'] != null ? DateTime.tryParse(json['deadline'].toString()) : null,
+        createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
+        updatedAt: DateTime.tryParse(json['updatedAt']?.toString() ?? '') ?? DateTime.now(),
+        dependencies: json['dependencies'] != null
+            ? (json['dependencies'] as List).map((e) => TaskDependencyEntity.fromJson(e)).toList()
+            : const [],
+      );
+      return Right(task);
+    } on DioException catch (e) {
+      return Left(e.response?.data?['message'] ?? e.message ?? 'Failed to update deadline');
+    } catch (e) {
+      return Left(e.toString());
+    }
+  }
+
+  @override
   Future<Either<String, TaskEntity>> updateTask(String projectId, String taskId, String title, String description, TaskPriority priority) async {
     try {
       final response = await _dio.put(

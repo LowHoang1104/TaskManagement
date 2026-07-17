@@ -45,6 +45,10 @@ namespace TaskApi.Controllers
                 var task = await _taskService.UpdateTaskAsync(id, request, userId);
                 return Ok(task);
             }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(403, new { message = ex.Message });
+            }
             catch (Exception ex)
             {
                 return BadRequest(new { message = ex.Message });

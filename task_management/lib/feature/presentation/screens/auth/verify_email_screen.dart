@@ -220,12 +220,7 @@ class _OtpBox extends StatelessWidget {
             fontWeight: FontWeight.w800,
             color: focused ? p.accent : p.text,
           ),
-          decoration: const InputDecoration(
-            counterText: '',
-            border: InputBorder.none,
-            isDense: true,
-            contentPadding: EdgeInsets.zero,
-          ),
+          decoration: tfBareInput(counterText: ''),
         ),
       ),
     );

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../app/theme/app_palette.dart';
 import '../../../domain/entities/enums.dart';
+import '../../providers/project_provider.dart';
 import '../../providers/task_provider.dart';
 import '../taskflow_providers.dart';
 import '../tf_utils.dart';
@@ -152,14 +153,29 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
     );
   }
 
-  void _toggleDone(String workspaceId, TaskWithProject item) {
+  Future<void> _toggleDone(String workspaceId, TaskWithProject item) async {
     final task = item.task;
     final next =
         task.status == TaskStatus.done ? TaskStatus.todo : TaskStatus.done;
-    ref
+
+    // Must await: [myTasksProvider] re-reads from the server, so invalidating
+    // before the PUT lands would refetch the old status and flip the tick back.
+    await ref
         .read(taskNotifierProvider(task.projectId).notifier)
         .updateTaskStatusLocally(task.id, next);
+    if (!mounted) return;
+
+    final error = ref.read(taskNotifierProvider(task.projectId)).error;
+    if (error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error), backgroundColor: context.palette.danger),
+      );
+      return;
+    }
+
     ref.invalidate(myTasksProvider(workspaceId));
+    // Completing a task changes the project's "3 / 14 tasks" progress too.
+    ref.invalidate(projectNotifierProvider(workspaceId));
   }
 
   Widget _message(BuildContext context,

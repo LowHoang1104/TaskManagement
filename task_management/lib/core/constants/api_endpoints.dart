@@ -46,6 +46,8 @@ class WorkspaceEndpoints {
   static String delete(String id) => '/workspaces/$id';
   static String memberRole(String id, String userId) => '/workspaces/$id/members/$userId/role';
   static String member(String id, String userId) => '/workspaces/$id/members/$userId';
+  static String accept(String id) => '/workspaces/$id/accept';
+  static String decline(String id) => '/workspaces/$id/decline';
 }
 
 /// Project endpoints
@@ -71,6 +73,8 @@ class TaskEndpoints {
   static String comments(String taskId) => '/tasks/$taskId/comments';
   static String checklists(String taskId) => '/tasks/$taskId/checklists';
   static String attachments(String taskId) => '/tasks/$taskId/attachments';
+  static String attachmentById(String taskId, String attachmentId) =>
+      '/tasks/$taskId/attachments/$attachmentId';
   static String activityLogs(String taskId) => '/tasks/$taskId/activity-logs';
   static String reviewHistory(String taskId) => '/tasks/$taskId/reviews';
 }

@@ -481,6 +481,85 @@ class TfPrimaryButton extends StatelessWidget {
 // Inputs
 // ─────────────────────────────────────────────────────────────────────────────
 
+/// [InputDecoration] for a [TextField] that lives inside one of the custom
+/// bordered containers in this file.
+///
+/// The global `inputDecorationTheme` supplies `enabledBorder`/`focusedBorder`/
+/// error borders plus a fill. `InputDecoration.border` is only the *fallback*,
+/// so setting `border: InputBorder.none` alone does NOT suppress them — the
+/// theme still paints a second rounded box (and fill) inside ours. This strips
+/// every one of them so the surrounding container is the only visible box.
+InputDecoration tfBareInput({
+  String? hint,
+  TextStyle? hintStyle,
+  EdgeInsetsGeometry contentPadding = EdgeInsets.zero,
+  String? counterText,
+}) {
+  return InputDecoration(
+    isDense: true,
+    filled: false,
+    contentPadding: contentPadding,
+    border: InputBorder.none,
+    enabledBorder: InputBorder.none,
+    focusedBorder: InputBorder.none,
+    disabledBorder: InputBorder.none,
+    errorBorder: InputBorder.none,
+    focusedErrorBorder: InputBorder.none,
+    hintText: hint,
+    hintStyle: hintStyle,
+    counterText: counterText,
+  );
+}
+
+/// Read-only sibling of [TfLabeledField]: same bordered box with the inner
+/// uppercase label, but wrapping arbitrary content (e.g. a workspace picker).
+/// Keeps non-input rows visually consistent with the text fields.
+class TfLabeledBox extends StatelessWidget {
+  final String label;
+  final Widget child;
+  final VoidCallback? onTap;
+
+  const TfLabeledBox({
+    super.key,
+    required this.label,
+    required this.child,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        decoration: BoxDecoration(
+          color: p.surface,
+          borderRadius: BorderRadius.circular(13),
+          border: Border.all(color: p.border2, width: 1.5),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label.toUpperCase(),
+              style: TextStyle(
+                fontSize: 9.5,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.7,
+                color: p.text3,
+              ),
+            ),
+            const SizedBox(height: 4),
+            child,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// Bordered input box with an inner uppercase label and optional leading icon,
 /// matching the form fields in the design. Shows the accent focus ring when
 /// active (mirrors the `box-shadow: 0 0 0 3px accent-weak` treatment).
@@ -492,6 +571,10 @@ class TfLabeledField extends StatefulWidget {
   final bool obscure;
   final TextInputType? keyboardType;
   final bool autofocus;
+  final int maxLines;
+  final int? minLines;
+  final ValueChanged<String>? onChanged;
+  final ValueChanged<String>? onSubmitted;
 
   const TfLabeledField({
     super.key,
@@ -502,6 +585,10 @@ class TfLabeledField extends StatefulWidget {
     this.obscure = false,
     this.keyboardType,
     this.autofocus = false,
+    this.maxLines = 1,
+    this.minLines,
+    this.onChanged,
+    this.onSubmitted,
   });
 
   @override
@@ -551,6 +638,9 @@ class _TfLabeledFieldState extends State<TfLabeledField> {
           ),
           const SizedBox(height: 2),
           Row(
+            crossAxisAlignment: widget.maxLines > 1
+                ? CrossAxisAlignment.start
+                : CrossAxisAlignment.center,
             children: [
               if (widget.icon != null) ...[
                 Icon(widget.icon, size: 18, color: p.text3),
@@ -563,17 +653,20 @@ class _TfLabeledFieldState extends State<TfLabeledField> {
                   autofocus: widget.autofocus,
                   obscureText: _obscured,
                   keyboardType: widget.keyboardType,
+                  onChanged: widget.onChanged,
+                  onSubmitted: widget.onSubmitted,
+                  // obscureText requires a single line.
+                  maxLines: widget.obscure ? 1 : widget.maxLines,
+                  minLines: widget.obscure ? null : widget.minLines,
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                     color: p.text,
                   ),
-                  decoration: InputDecoration(
-                    isDense: true,
-                    contentPadding: EdgeInsets.zero,
-                    border: InputBorder.none,
-                    hintText: widget.hint,
-                    hintStyle: TextStyle(color: p.text3, fontWeight: FontWeight.w500),
+                  decoration: tfBareInput(
+                    hint: widget.hint,
+                    hintStyle:
+                        TextStyle(color: p.text3, fontWeight: FontWeight.w500),
                   ),
                 ),
               ),

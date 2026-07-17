@@ -19,7 +19,7 @@ namespace TaskApi.Data
         public const string DefaultPassword = "Password123!";
         public const string PrimaryEmail = "an.nguyen@acme.co";
 
-        public static void Seed(AppDbContext db)
+        public static void Seed(AppDbContext db, string? webRootPath = null)
         {
             // Idempotent on the demo dataset specifically: seed runs even if the
             // DB already has other (e.g. manually-registered) users, but never
@@ -68,14 +68,27 @@ namespace TaskApi.Data
                 CreatedAt = now,
                 UpdatedAt = now,
             };
-            db.Workspaces.AddRange(wsAcme, wsSide);
+            // Owned by Kim — An has a PENDING invite here, to demo the
+            // invite → accept flow (it stays hidden until An accepts).
+            var wsBeta = new Workspace
+            {
+                Id = Guid.NewGuid().ToString(),
+                Name = "Beta Labs",
+                Description = "Kim's research workspace.",
+                OwnerId = kim.Id,
+                CreatedAt = now,
+                UpdatedAt = now,
+            };
+            db.Workspaces.AddRange(wsAcme, wsSide, wsBeta);
             db.SaveChanges();
 
-            WorkspaceMember WM(string wsId, string userId, string role) => new()
+            WorkspaceMember WM(string wsId, string userId, string role,
+                string status = "Accepted") => new()
             {
                 WorkspaceId = wsId,
                 UserId = userId,
                 Role = role,
+                Status = status,
                 JoinedAt = now,
             };
             db.WorkspaceMembers.AddRange(
@@ -85,7 +98,9 @@ namespace TaskApi.Data
                 WM(wsAcme.Id, minh.Id, "Member"),
                 WM(wsAcme.Id, le.Id, "Member"),
                 WM(wsSide.Id, an.Id, "Owner"),
-                WM(wsSide.Id, kim.Id, "Member")
+                WM(wsSide.Id, kim.Id, "Member"),
+                WM(wsBeta.Id, kim.Id, "Owner"),
+                WM(wsBeta.Id, an.Id, "Member", "Pending") // ← invite awaiting accept
             );
 
             // ── Projects ───────────────────────────────────────────────────
@@ -134,9 +149,9 @@ namespace TaskApi.Data
                 // Q2 Campaign (done)
                 PM(pQ2.Id, an.Id, "Owner"),
                 PM(pQ2.Id, kim.Id, "Member"),
-                // Design Ops — owned by Kim, An has a PENDING invite
+                // Design Ops — owned by Kim (An sees it as the workspace owner)
                 PM(pDesign.Id, kim.Id, "Owner"),
-                PM(pDesign.Id, an.Id, "Member", "Pending"),
+                PM(pDesign.Id, tran.Id, "Member"),
                 // Personal
                 PM(pPersonal.Id, an.Id, "Owner")
             );
@@ -251,13 +266,36 @@ namespace TaskApi.Data
             );
 
             // ── Attachment ─────────────────────────────────────────────────
+            // Write a real file to wwwroot/uploads, otherwise the row would point
+            // at a URL that 404s and the download button would look broken.
+            const string demoFileName = "tokens-spec.txt";
+            long demoFileSize = 0;
+            if (!string.IsNullOrWhiteSpace(webRootPath))
+            {
+                try
+                {
+                    var uploadsDir = Path.Combine(webRootPath, "uploads");
+                    Directory.CreateDirectory(uploadsDir);
+                    var demoPath = Path.Combine(uploadsDir, demoFileName);
+                    File.WriteAllText(demoPath,
+                        "TaskFlow — design tokens spec (demo attachment)\n\n" +
+                        "Color scales, spacing scale and the typography ramp live here.\n");
+                    demoFileSize = new FileInfo(demoPath).Length;
+                }
+                catch
+                {
+                    // Non-fatal: seeding must not fail because of the filesystem.
+                }
+            }
+
             db.Attachments.Add(new Attachment
             {
                 Id = Guid.NewGuid().ToString(),
                 TaskId = tTokens.Id,
-                FileName = "tokens-spec.pdf",
-                FileUrl = "/uploads/tokens-spec.pdf",
-                FileSize = 1_468_006, // ~1.4 MB
+                FileName = demoFileName,
+                // Relative — the app resolves it against the API host.
+                FileUrl = $"/uploads/{demoFileName}",
+                FileSize = demoFileSize,
                 UploadedById = an.Id,
                 UploadedAt = now.AddHours(-6),
             });
@@ -327,7 +365,9 @@ namespace TaskApi.Data
                 CreatedAt = createdAt,
             };
             db.Notifications.AddRange(
-                N("Invite", "Kim Pham invited you to Design Ops 2026", false, pDesign.Id, now.AddMinutes(-5)),
+                // Workspace invite → Accept/Decline in the Inbox; "Beta Labs" only
+                // shows up in the workspace switcher once accepted.
+                N("Invite", "Kim Pham invited you to workspace 'Beta Labs'", false, wsBeta.Id, now.AddMinutes(-5)),
                 N("Comment", "Kim Pham commented on Design system tokens", false, tTokens.Id, now.AddHours(-2)),
                 N("Assign", "Tran Le assigned you Review PR #212 — nav refactor", false, tPr.Id, now.AddHours(-4)),
                 N("TaskCompleted", "You completed Update onboarding copy", true, tOnboard.Id, now.AddDays(-1)),

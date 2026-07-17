@@ -42,6 +42,11 @@ namespace TaskApi.Models
         public string WorkspaceId { get; set; } = string.Empty;
         public string UserId { get; set; } = string.Empty;
         public string Role { get; set; } = string.Empty; // Owner, Admin, Member
+        /// <summary>
+        /// Pending until the invitee accepts. Joining a workspace is invite-based;
+        /// joining a project is not (project members are added directly).
+        /// </summary>
+        public string Status { get; set; } = "Accepted"; // Pending, Accepted
         public DateTime JoinedAt { get; set; } = DateTime.UtcNow;
 
         public Workspace Workspace { get; set; } = null!;

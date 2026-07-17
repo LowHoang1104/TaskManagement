@@ -100,8 +100,12 @@ class KanbanBoardScreen extends ConsumerWidget {
                     ),
                   ),
                   GestureDetector(
-                    onTap: () =>
-                        showInviteMemberDialog(context, projectId: projectId),
+                    onTap: () => showInviteMemberDialog(
+                      context,
+                      projectId: projectId,
+                      workspaceId: workspaceId,
+                      workspaceName: workspaceName,
+                    ),
                     child: Icon(Icons.group_add_rounded, size: 22, color: p.text2),
                   ),
                 ],

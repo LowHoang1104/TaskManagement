@@ -46,5 +46,29 @@ namespace TaskApi.Controllers
             var attachment = await _attachmentService.UploadAttachmentAsync(taskId, GetUserId(), file, webRootPath, requestScheme, requestHost);
             return Ok(attachment);
         }
+
+        [HttpDelete("{attachmentId}")]
+        public async Task<IActionResult> DeleteAttachment(string taskId, string attachmentId)
+        {
+            var webRootPath = _env.WebRootPath;
+            if (string.IsNullOrWhiteSpace(webRootPath))
+            {
+                webRootPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot");
+            }
+
+            try
+            {
+                await _attachmentService.DeleteAttachmentAsync(attachmentId, GetUserId(), webRootPath);
+                return Ok(new { message = "Attachment deleted." });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(403, new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
     }
 }

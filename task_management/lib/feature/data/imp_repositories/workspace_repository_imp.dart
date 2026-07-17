@@ -88,6 +88,7 @@ class WorkspaceRepositoryImp implements IWorkspaceRepository {
         passwordHash: '',
         avatarUrl: json['avatarUrl'],
         role: json['role'],
+        status: json['status'] ?? 'Accepted',
         joinedAt: DateTime.tryParse(json['joinedAt']?.toString() ?? '') ?? DateTime.now(),
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
@@ -95,6 +96,30 @@ class WorkspaceRepositoryImp implements IWorkspaceRepository {
       return Right(members);
     } on DioException catch (e) {
       return Left(e.response?.data?['message'] ?? e.message ?? 'Failed to load workspace members');
+    } catch (e) {
+      return Left(e.toString());
+    }
+  }
+
+  @override
+  Future<Either<String, bool>> acceptWorkspaceInvite(String workspaceId) async {
+    try {
+      await _dio.post(WorkspaceEndpoints.accept(workspaceId));
+      return const Right(true);
+    } on DioException catch (e) {
+      return Left(e.response?.data?['message'] ?? e.message ?? 'Failed to accept invite');
+    } catch (e) {
+      return Left(e.toString());
+    }
+  }
+
+  @override
+  Future<Either<String, bool>> declineWorkspaceInvite(String workspaceId) async {
+    try {
+      await _dio.post(WorkspaceEndpoints.decline(workspaceId));
+      return const Right(true);
+    } on DioException catch (e) {
+      return Left(e.response?.data?['message'] ?? e.message ?? 'Failed to decline invite');
     } catch (e) {
       return Left(e.toString());
     }
@@ -115,6 +140,7 @@ class WorkspaceRepositoryImp implements IWorkspaceRepository {
         passwordHash: '',
         avatarUrl: json['avatarUrl'],
         role: json['role'],
+        status: json['status'] ?? 'Accepted',
         joinedAt: DateTime.tryParse(json['joinedAt']?.toString() ?? '') ?? DateTime.now(),
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
@@ -142,6 +168,7 @@ class WorkspaceRepositoryImp implements IWorkspaceRepository {
         passwordHash: '',
         avatarUrl: json['avatarUrl'],
         role: json['role'],
+        status: json['status'] ?? 'Accepted',
         joinedAt: DateTime.tryParse(json['joinedAt']?.toString() ?? '') ?? DateTime.now(),
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),

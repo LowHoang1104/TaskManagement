@@ -21,8 +21,10 @@ namespace TaskApi.Services
 
         public async Task<IEnumerable<WorkspaceDto>> GetWorkspacesAsync(string userId)
         {
+            // Only workspaces the user has actually accepted an invite to.
             var workspaces = await _context.Workspaces
-                .Where(w => w.Members.Any(m => m.UserId == userId) && !w.IsDeleted)
+                .Where(w => w.Members.Any(m => m.UserId == userId && m.Status == "Accepted")
+                            && !w.IsDeleted)
                 .ToListAsync();
 
             return _mapper.Map<IEnumerable<WorkspaceDto>>(workspaces);
@@ -37,7 +39,8 @@ namespace TaskApi.Services
             workspace.Members.Add(new WorkspaceMember
             {
                 UserId = userId,
-                Role = "Owner"
+                Role = "Owner",
+                Status = "Accepted", // the creator is in by definition
             });
 
             _context.Workspaces.Add(workspace);
@@ -77,7 +80,8 @@ namespace TaskApi.Services
                 throw new Exception("Workspace not found");
             }
 
-            if (!workspace.Members.Any(m => m.UserId == actorId) && workspace.OwnerId != actorId)
+            if (!workspace.Members.Any(m => m.UserId == actorId && m.Status == "Accepted")
+                && workspace.OwnerId != actorId)
             {
                 throw new UnauthorizedAccessException("You are not a member of this workspace.");
             }
@@ -89,6 +93,7 @@ namespace TaskApi.Services
                 FullName = m.User.FullName,
                 AvatarUrl = m.User.AvatarUrl,
                 Role = m.Role,
+                Status = m.Status,
                 JoinedAt = m.JoinedAt
             }).ToList();
         }
@@ -104,7 +109,8 @@ namespace TaskApi.Services
                 throw new Exception("Workspace not found");
             }
 
-            var actorMember = workspace.Members.FirstOrDefault(m => m.UserId == actorId);
+            var actorMember = workspace.Members
+                .FirstOrDefault(m => m.UserId == actorId && m.Status == "Accepted");
             if (actorMember == null || (actorMember.Role != "Owner" && actorMember.Role != "Admin"))
             {
                 throw new UnauthorizedAccessException("Only Owners and Admins can invite members to the workspace.");
@@ -116,16 +122,21 @@ namespace TaskApi.Services
                 throw new Exception("User not found");
             }
 
-            if (workspace.Members.Any(m => m.UserId == user.Id))
+            var existing = workspace.Members.FirstOrDefault(m => m.UserId == user.Id);
+            if (existing != null)
             {
-                throw new Exception("User is already a member of this workspace");
+                throw new Exception(existing.Status == "Pending"
+                    ? "This user already has a pending invite."
+                    : "User is already a member of this workspace");
             }
 
+            // Invite-based: the user only joins once they accept.
             var newMember = new WorkspaceMember
             {
                 WorkspaceId = workspaceId,
                 UserId = user.Id,
                 Role = "Member",
+                Status = "Pending",
                 JoinedAt = DateTime.UtcNow
             };
 
@@ -134,10 +145,11 @@ namespace TaskApi.Services
 
             var actorUser = await _context.Users.FindAsync(actorId);
 
+            // Type "Invite" → the app renders Accept / Decline actions.
             await _notificationService.CreateNotificationAsync(
                 userId: user.Id,
-                type: "Workspace",
-                message: $"You have been added to workspace '{workspace.Name}' by {actorUser?.FullName ?? "someone"}",
+                type: "Invite",
+                message: $"{actorUser?.FullName ?? "Someone"} invited you to workspace '{workspace.Name}'",
                 relatedId: workspace.Id
             );
 
@@ -148,8 +160,50 @@ namespace TaskApi.Services
                 FullName = user.FullName,
                 AvatarUrl = user.AvatarUrl,
                 Role = newMember.Role,
+                Status = newMember.Status,
                 JoinedAt = newMember.JoinedAt
             };
+        }
+
+        public async Task<WorkspaceMemberDto> AcceptWorkspaceInvitationAsync(string workspaceId, string userId)
+        {
+            var member = await _context.Set<WorkspaceMember>()
+                .Include(m => m.User)
+                .FirstOrDefaultAsync(m => m.WorkspaceId == workspaceId && m.UserId == userId);
+
+            if (member == null) throw new Exception("Invitation not found");
+            if (member.Status == "Accepted") throw new Exception("You already joined this workspace.");
+
+            member.Status = "Accepted";
+            member.JoinedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            return new WorkspaceMemberDto
+            {
+                Id = member.User.Id,
+                Email = member.User.Email,
+                FullName = member.User.FullName,
+                AvatarUrl = member.User.AvatarUrl,
+                Role = member.Role,
+                Status = member.Status,
+                JoinedAt = member.JoinedAt
+            };
+        }
+
+        public async Task<bool> DeclineWorkspaceInvitationAsync(string workspaceId, string userId)
+        {
+            var member = await _context.Set<WorkspaceMember>()
+                .FirstOrDefaultAsync(m => m.WorkspaceId == workspaceId && m.UserId == userId);
+
+            if (member == null) throw new Exception("Invitation not found");
+            if (member.Status != "Pending")
+            {
+                throw new Exception("Only pending invitations can be declined.");
+            }
+
+            _context.Set<WorkspaceMember>().Remove(member);
+            await _context.SaveChangesAsync();
+            return true;
         }
 
         public async Task<WorkspaceMemberDto> UpdateWorkspaceMemberRoleAsync(string workspaceId, string userId, string newRole, string actorId)

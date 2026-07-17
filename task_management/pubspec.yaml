@@ -65,6 +65,8 @@ dependencies:
   fl_chart: ^1.2.0
   timeago: ^3.7.1
   image_picker: ^1.2.3
+  # Opens attachment URLs in the browser / system handler (download).
+  url_launcher: ^6.3.1
 
 dev_dependencies:
   flutter_test:

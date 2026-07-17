@@ -8,6 +8,7 @@ import '../taskflow_providers.dart';
 import '../tf_utils.dart';
 import '../widgets/tf_widgets.dart';
 import 'kanban_board_screen.dart';
+import 'workspace_members_screen.dart';
 
 /// Projects — redesigned UI from `TaskFlow.dc.html` (02 — Home), wired to the
 /// workspace + project providers.
@@ -51,7 +52,28 @@ class ProjectsScreen extends ConsumerWidget {
                           fontWeight: FontWeight.w800,
                           letterSpacing: -0.2,
                           color: p.text)),
-                  Icon(Icons.search_rounded, size: 24, color: p.text2),
+                  Row(
+                    children: [
+                      if (workspace != null)
+                        GestureDetector(
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => WorkspaceMembersScreen(
+                                workspaceId: workspace.id,
+                                workspaceName: workspace.name,
+                              ),
+                            ),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.only(right: 16),
+                            child: Icon(Icons.group_outlined,
+                                size: 24, color: p.text2),
+                          ),
+                        ),
+                      Icon(Icons.search_rounded, size: 24, color: p.text2),
+                    ],
+                  ),
                 ],
               ),
               const SizedBox(height: 14),
@@ -397,7 +419,10 @@ class _ProjectCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
-    final done = project.progress >= 100;
+    final total = project.taskCount;
+    final doneCount = project.doneTaskCount;
+    final done = total > 0 && doneCount >= total;
+    final ratio = total == 0 ? 0.0 : doneCount / total;
     return GestureDetector(
       onLongPress: onLongPress,
       child: TfCard(
@@ -433,11 +458,12 @@ class _ProjectCard extends StatelessWidget {
                       color: p.text3)),
             ],
             const SizedBox(height: 14),
-            TfProgressBar(
-                value: project.progress / 100.0,
-                color: done ? p.success : p.accent),
+            TfProgressBar(value: ratio, color: done ? p.success : p.accent),
             const SizedBox(height: 10),
-            Text('${project.progress}% complete',
+            Text(
+                total == 0
+                    ? 'No tasks yet'
+                    : '$doneCount / $total tasks',
                 style: TextStyle(
                     fontSize: 12, fontWeight: FontWeight.w600, color: p.text3)),
           ],

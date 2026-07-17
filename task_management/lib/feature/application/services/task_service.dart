@@ -26,6 +26,11 @@ class TaskService implements ITaskService {
   }
 
   @override
+  Future<Either<String, TaskEntity>> updateTaskDeadline(String projectId, String taskId, DateTime deadline) async {
+    return await _repository.updateTaskDeadline(projectId, taskId, deadline);
+  }
+
+  @override
   Future<Either<String, TaskEntity>> updateTask(String projectId, String taskId, String title, String description, TaskPriority priority) async {
     return await _repository.updateTask(projectId, taskId, title, description, priority);
   }

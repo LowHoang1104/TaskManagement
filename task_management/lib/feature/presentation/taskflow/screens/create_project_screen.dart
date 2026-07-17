@@ -155,44 +155,25 @@ class _CreateProjectScreenState extends ConsumerState<CreateProjectScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  TfSectionLabel('Project name'),
-                  const SizedBox(height: 8),
-                  _Box(
-                    focused: true,
-                    child: TextField(
-                      controller: _nameController,
-                      autofocus: true,
-                      cursorColor: p.accent,
-                      style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: p.text),
-                      decoration: _dec(context, 'e.g. Website Revamp'),
-                    ),
+                  TfLabeledField(
+                    label: 'Project name',
+                    controller: _nameController,
+                    hint: 'e.g. Website Revamp',
+                    autofocus: true,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 14),
 
-                  TfSectionLabel('Description'),
-                  const SizedBox(height: 8),
-                  _Box(
-                    minHeight: 56,
-                    child: TextField(
-                      controller: _descController,
-                      maxLines: null,
-                      cursorColor: p.accent,
-                      style: TextStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w600,
-                          height: 1.5,
-                          color: p.text2),
-                      decoration: _dec(context, 'What is this project about?'),
-                    ),
+                  TfLabeledField(
+                    label: 'Description',
+                    controller: _descController,
+                    hint: 'What is this project about?',
+                    maxLines: 3,
+                    minLines: 2,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 14),
 
-                  TfSectionLabel('Workspace'),
-                  const SizedBox(height: 8),
-                  _Box(
+                  TfLabeledBox(
+                    label: 'Workspace',
                     child: Row(
                       children: [
                         Container(
@@ -268,36 +249,4 @@ class _CreateProjectScreenState extends ConsumerState<CreateProjectScreen> {
     );
   }
 
-  InputDecoration _dec(BuildContext context, String hint) => InputDecoration(
-        isDense: true,
-        border: InputBorder.none,
-        contentPadding: EdgeInsets.zero,
-        hintText: hint,
-        hintStyle: TextStyle(color: context.palette.text3),
-      );
-}
-
-class _Box extends StatelessWidget {
-  final Widget child;
-  final bool focused;
-  final double? minHeight;
-  const _Box({required this.child, this.focused = false, this.minHeight});
-
-  @override
-  Widget build(BuildContext context) {
-    final p = context.palette;
-    return Container(
-      constraints:
-          minHeight != null ? BoxConstraints(minHeight: minHeight!) : null,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(13),
-        border: Border.all(color: focused ? p.accent : p.border2, width: 1.5),
-        boxShadow: focused
-            ? [BoxShadow(color: p.accentWeak, blurRadius: 0, spreadRadius: 3)]
-            : null,
-      ),
-      child: child,
-    );
-  }
 }

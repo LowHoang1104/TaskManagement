@@ -3,6 +3,7 @@ import '../../../../core/di/injection_container.dart';
 import '../../domain/entities/notification_entity.dart';
 import '../../application/i_services/i_notification_service.dart';
 import '../../application/i_services/i_project_service.dart';
+import '../../application/i_services/i_workspace_service.dart';
 
 class NotificationState {
   final bool isLoading;
@@ -52,6 +53,42 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
       (updated) {
         final updatedList = state.notifications.map((n) => n.id == id ? updated : n).toList();
         state = state.copyWith(notifications: updatedList);
+      },
+    );
+  }
+
+  /// Workspace invites require acceptance (project members are added directly),
+  /// so "Invite" notifications resolve to these.
+  Future<bool> acceptWorkspaceInvite(String workspaceId, String notificationId) async {
+    state = state.copyWith(isLoading: true);
+    final result = await sl<IWorkspaceService>().acceptWorkspaceInvite(workspaceId);
+
+    return result.fold(
+      (error) {
+        state = state.copyWith(isLoading: false, error: error);
+        return false;
+      },
+      (_) async {
+        await markAsRead(notificationId);
+        state = state.copyWith(isLoading: false);
+        return true;
+      },
+    );
+  }
+
+  Future<bool> declineWorkspaceInvite(String workspaceId, String notificationId) async {
+    state = state.copyWith(isLoading: true);
+    final result = await sl<IWorkspaceService>().declineWorkspaceInvite(workspaceId);
+
+    return result.fold(
+      (error) {
+        state = state.copyWith(isLoading: false, error: error);
+        return false;
+      },
+      (_) async {
+        await markAsRead(notificationId);
+        state = state.copyWith(isLoading: false);
+        return true;
       },
     );
   }
