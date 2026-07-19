@@ -176,7 +176,7 @@ namespace TaskApi.Services
 
             if (!isWorkspaceMember && user.Id != project.Workspace.OwnerId)
             {
-                throw new UnauthorizedAccessException("Người này chưa tham gia Workspace.");
+                throw new UnauthorizedAccessException("This user is not a member of the workspace.");
             }
 
             var newMember = new ProjectMember

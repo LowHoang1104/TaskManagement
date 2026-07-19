@@ -66,7 +66,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _BackButton(onTap: () => Navigator.maybePop(context)),
+              _BackButton(onTap: () {
+                // Login navigates here with pushReplacement, so there is often
+                // nothing to pop back to — fall back to the login screen.
+                if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                } else {
+                  Navigator.pushReplacementNamed(context, AppRoutes.login);
+                }
+              }),
               const SizedBox(height: 18),
               Text('Create account',
                   style: TextStyle(

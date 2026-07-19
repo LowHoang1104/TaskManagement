@@ -14,6 +14,7 @@ void main() {
 
   final tDashboard = DashboardEntity(
     totalTasksDone: 1,
+    tasksDoneThisWeek: 1,
     totalTasksOngoing: 2,
     tasksToDo: 3,
     tasksInProgress: 4,

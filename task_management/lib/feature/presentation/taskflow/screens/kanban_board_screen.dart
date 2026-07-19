@@ -5,15 +5,61 @@ import '../../../../app/theme/app_palette.dart';
 import '../../../domain/entities/enums.dart';
 import '../../../domain/entities/task_entity.dart';
 import '../../providers/task_provider.dart';
+import '../taskflow_providers.dart';
 import '../tf_utils.dart';
 import '../widgets/tf_widgets.dart';
 import 'task_detail_screen.dart';
 import 'create_task_sheet.dart';
 import 'invite_member_dialog.dart';
 
+/// How the cards inside each status column are ordered.
+enum _BoardSort { deadline, created, priority, title }
+
+extension _BoardSortX on _BoardSort {
+  String get label => switch (this) {
+    _BoardSort.deadline => 'Deadline',
+    _BoardSort.created => 'Ngày tạo',
+    _BoardSort.priority => 'Độ ưu tiên',
+    _BoardSort.title => 'Tên (A–Z)',
+  };
+
+  IconData get icon => switch (this) {
+    _BoardSort.deadline => Icons.event_rounded,
+    _BoardSort.created => Icons.schedule_rounded,
+    _BoardSort.priority => Icons.flag_rounded,
+    _BoardSort.title => Icons.sort_by_alpha_rounded,
+  };
+
+  /// Returns a new sorted list; the input is not mutated.
+  List<TaskEntity> apply(List<TaskEntity> tasks) {
+    final sorted = [...tasks];
+    switch (this) {
+      case _BoardSort.deadline:
+        // Soonest deadline first; tasks with no deadline sink to the bottom.
+        sorted.sort((a, b) {
+          if (a.deadline == null && b.deadline == null) return 0;
+          if (a.deadline == null) return 1;
+          if (b.deadline == null) return -1;
+          return a.deadline!.compareTo(b.deadline!);
+        });
+      case _BoardSort.created:
+        // Newest first.
+        sorted.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      case _BoardSort.priority:
+        // Highest priority first (critical → low).
+        sorted.sort((a, b) => b.priority.index.compareTo(a.priority.index));
+      case _BoardSort.title:
+        sorted.sort(
+          (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()),
+        );
+    }
+    return sorted;
+  }
+}
+
 /// Kanban board — redesigned UI from `TaskFlow.dc.html` (03 — Tasks), wired to
 /// the task provider (tasks grouped into status columns).
-class KanbanBoardScreen extends ConsumerWidget {
+class KanbanBoardScreen extends ConsumerStatefulWidget {
   final String projectId;
   final String projectName;
   final String workspaceId;
@@ -27,6 +73,11 @@ class KanbanBoardScreen extends ConsumerWidget {
     this.workspaceName = '',
   });
 
+  @override
+  ConsumerState<KanbanBoardScreen> createState() => _KanbanBoardScreenState();
+}
+
+class _KanbanBoardScreenState extends ConsumerState<KanbanBoardScreen> {
   static const _columns = [
     TaskStatus.todo,
     TaskStatus.doing,
@@ -34,34 +85,41 @@ class KanbanBoardScreen extends ConsumerWidget {
     TaskStatus.done,
   ];
 
+  _BoardSort _sort = _BoardSort.deadline;
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final p = context.palette;
-    final state = ref.watch(taskNotifierProvider(projectId));
+    final state = ref.watch(taskNotifierProvider(widget.projectId));
     final tasks = state.tasks;
+    // Only Owner/Admin can create tasks — hide the button for members.
+    final canManage = ref.watch(canManageProjectProvider(widget.projectId));
 
     return Scaffold(
       backgroundColor: p.surface2,
-      floatingActionButton: GestureDetector(
-        onTap: () => showCreateTaskSheet(context, projectId: projectId),
-        child: Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            color: p.accent,
-            borderRadius: BorderRadius.circular(18),
-            boxShadow: [
-              BoxShadow(
-                color: p.accent.withValues(alpha: 0.45),
-                blurRadius: 30,
-                offset: const Offset(0, 14),
-                spreadRadius: -8,
+      floatingActionButton: !canManage
+          ? null
+          : GestureDetector(
+              onTap: () =>
+                  showCreateTaskSheet(context, projectId: widget.projectId),
+              child: Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: p.accent,
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: [
+                    BoxShadow(
+                      color: p.accent.withValues(alpha: 0.45),
+                      blurRadius: 30,
+                      offset: const Offset(0, 14),
+                      spreadRadius: -8,
+                    ),
+                  ],
+                ),
+                child: Icon(Icons.add_rounded, size: 28, color: p.onAccent),
               ),
-            ],
-          ),
-          child: Icon(Icons.add_rounded, size: 28, color: p.onAccent),
-        ),
-      ),
+            ),
       body: SafeArea(
         child: Column(
           children: [
@@ -83,7 +141,7 @@ class KanbanBoardScreen extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(projectName,
+                        Text(widget.projectName,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
@@ -99,12 +157,14 @@ class KanbanBoardScreen extends ConsumerWidget {
                       ],
                     ),
                   ),
+                  _sortButton(p),
+                  const SizedBox(width: 6),
                   GestureDetector(
                     onTap: () => showInviteMemberDialog(
                       context,
-                      projectId: projectId,
-                      workspaceId: workspaceId,
-                      workspaceName: workspaceName,
+                      projectId: widget.projectId,
+                      workspaceId: widget.workspaceId,
+                      workspaceName: widget.workspaceName,
                     ),
                     child: Icon(Icons.group_add_rounded, size: 22, color: p.text2),
                   ),
@@ -113,6 +173,61 @@ class KanbanBoardScreen extends ConsumerWidget {
             ),
             // ── Board ───────────────────────────────────────────────────
             Expanded(child: _boardBody(context, ref, state, tasks)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Popup menu to pick how each column's cards are ordered.
+  Widget _sortButton(AppPalette p) {
+    return PopupMenuButton<_BoardSort>(
+      tooltip: 'Sắp xếp',
+      initialValue: _sort,
+      onSelected: (v) => setState(() => _sort = v),
+      color: p.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: p.border),
+      ),
+      itemBuilder: (_) => [
+        for (final s in _BoardSort.values)
+          PopupMenuItem(
+            value: s,
+            child: Row(
+              children: [
+                Icon(s.icon, size: 17, color: p.text2),
+                const SizedBox(width: 10),
+                Text(s.label,
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: p.text)),
+                if (s == _sort) ...[
+                  const Spacer(),
+                  Icon(Icons.check_rounded, size: 16, color: p.accent),
+                ],
+              ],
+            ),
+          ),
+      ],
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: p.surface2,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: p.border),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.swap_vert_rounded, size: 16, color: p.text2),
+            const SizedBox(width: 4),
+            Text(_sort.label,
+                style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                    color: p.text2)),
           ],
         ),
       ),
@@ -143,7 +258,9 @@ class KanbanBoardScreen extends ConsumerWidget {
         for (final status in _columns)
           _Column(
             status: status,
-            tasks: tasks.where((t) => t.status == status).toList(),
+            tasks: _sort.apply(
+              tasks.where((t) => t.status == status).toList(),
+            ),
           ),
       ],
     );

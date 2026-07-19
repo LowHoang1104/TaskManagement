@@ -140,7 +140,7 @@ class AuthRepositoryImp implements IAuthRepository {
           final baseUrl = kBaseUrl.replaceAll('/api', '');
           avatarUrl = avatarUrl.startsWith('/') ? '$baseUrl$avatarUrl' : '$baseUrl/$avatarUrl';
         }
-        // Thêm tham số chống cache để Flutter luôn tải ảnh mới nhất nếu cùng 1 URL
+        // Cache-busting param so Flutter always loads the latest image for the same URL.
         final separator = avatarUrl.contains('?') ? '&' : '?';
         avatarUrl = '$avatarUrl${separator}t=${DateTime.now().millisecondsSinceEpoch}';
       }

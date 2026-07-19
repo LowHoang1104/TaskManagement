@@ -34,7 +34,7 @@ void main() {
     order: 0,
     createdAt: DateTime.now(),
     updatedAt: DateTime.now(),
-    dependencies: const [],
+    relations: const [],
   );
 
   setUp(() {

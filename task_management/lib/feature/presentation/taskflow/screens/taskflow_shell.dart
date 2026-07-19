@@ -21,7 +21,14 @@ class TaskFlowShell extends ConsumerStatefulWidget {
 }
 
 class _TaskFlowShellState extends ConsumerState<TaskFlowShell> {
-  late int _index = widget.initialIndex;
+  @override
+  void initState() {
+    super.initState();
+    // Seed the shared tab index from the requested initial tab.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(shellIndexProvider.notifier).state = widget.initialIndex;
+    });
+  }
 
   static const _items = [
     TfNavItem(Icons.grid_view_rounded, 'Home'),
@@ -33,12 +40,13 @@ class _TaskFlowShellState extends ConsumerState<TaskFlowShell> {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    final index = ref.watch(shellIndexProvider);
     return Scaffold(
       backgroundColor: p.surface,
       body: SafeArea(
         bottom: false,
         child: IndexedStack(
-          index: _index,
+          index: index,
           children: const [
             DashboardScreen(),
             ProjectsScreen(),
@@ -47,22 +55,24 @@ class _TaskFlowShellState extends ConsumerState<TaskFlowShell> {
           ],
         ),
       ),
-      floatingActionButton: _fab(context),
+      floatingActionButton: _fab(context, index),
       bottomNavigationBar: TfBottomNav(
         items: _items,
-        currentIndex: _index,
-        onTap: (i) => setState(() => _index = i),
+        currentIndex: index,
+        onTap: (i) => ref.read(shellIndexProvider.notifier).state = i,
       ),
     );
   }
 
-  Widget? _fab(BuildContext context) {
+  Widget? _fab(BuildContext context, int index) {
     final p = context.palette;
     // Only the Projects tab shows a FAB (create project). New tasks are created
     // from a project's board, which carries the required project context.
-    if (_index != 1) return null;
+    if (index != 1) return null;
     final workspace = ref.watch(currentWorkspaceProvider);
     if (workspace == null) return null;
+    // Only Owner/Admin can create projects — hide the button for members.
+    if (!ref.watch(canManageWorkspaceProvider(workspace.id))) return null;
     return GestureDetector(
       onTap: () => Navigator.push(
         context,

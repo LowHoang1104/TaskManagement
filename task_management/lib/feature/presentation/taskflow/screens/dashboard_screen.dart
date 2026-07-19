@@ -9,6 +9,7 @@ import '../../providers/project_provider.dart';
 import '../../providers/task_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/workspace_provider.dart';
+import '../taskflow_providers.dart';
 import '../tf_utils.dart';
 import '../widgets/tf_widgets.dart';
 
@@ -28,7 +29,9 @@ class DashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final p = context.palette;
     final user = ref.watch(authNotifierProvider).user;
-    final name = (user?.fullName.isNotEmpty ?? false) ? user!.fullName : 'there';
+    final name = (user?.fullName.isNotEmpty ?? false)
+        ? user!.fullName
+        : 'there';
     final unread = ref.watch(notificationProvider).unreadCount;
     final dashboard = ref.watch(dashboardProvider);
 
@@ -44,41 +47,56 @@ class DashboardScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(_greeting(),
-                        style: TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w600,
-                            color: p.text3)),
-                    Text(name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.2,
-                            color: p.text)),
+                    Text(
+                      _greeting(),
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: p.text3,
+                      ),
+                    ),
+                    Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.2,
+                        color: p.text,
+                      ),
+                    ),
                   ],
                 ),
               ),
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Icon(Icons.notifications_none_rounded, size: 24, color: p.text2),
-                  if (unread > 0)
-                    Positioned(
-                      right: -1,
-                      top: -1,
-                      child: Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: p.danger,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: p.surface, width: 2),
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () =>
+                    ref.read(shellIndexProvider.notifier).state = 3, // Inbox
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Icon(
+                      Icons.notifications_none_rounded,
+                      size: 24,
+                      color: p.text2,
+                    ),
+                    if (unread > 0)
+                      Positioned(
+                        right: -1,
+                        top: -1,
+                        child: Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: p.danger,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: p.surface, width: 2),
+                          ),
                         ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
               const SizedBox(width: 12),
               GestureDetector(
@@ -113,7 +131,10 @@ class DashboardScreen extends ConsumerWidget {
                 ),
                 data: (d) {
                   final total =
-                      d.totalTasksDone + d.tasksToDo + d.tasksInProgress + d.tasksReview;
+                      d.totalTasksDone +
+                      d.tasksToDo +
+                      d.tasksInProgress +
+                      d.tasksReview;
                   final progress = total == 0 ? 0.0 : d.totalTasksDone / total;
                   return ListView(
                     padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
@@ -123,7 +144,7 @@ class DashboardScreen extends ConsumerWidget {
                           Expanded(
                             child: _StatCard(
                               icon: Icons.check_circle_rounded,
-                              value: '${d.totalTasksDone}',
+                              value: '${d.tasksDoneThisWeek}',
                               label: 'Done this week',
                               accent: true,
                             ),
@@ -146,20 +167,27 @@ class DashboardScreen extends ConsumerWidget {
                         total: total,
                       ),
                       const SizedBox(height: 16),
-                      TfSectionLabel('By status',
-                          padding: const EdgeInsets.fromLTRB(2, 0, 0, 10)),
+                      TfSectionLabel(
+                        'By status',
+                        padding: const EdgeInsets.fromLTRB(2, 0, 0, 10),
+                      ),
                       _StatusRow(
-                          color: p.statusTodo, label: 'To Do', count: d.tasksToDo),
+                        color: p.statusTodo,
+                        label: 'To Do',
+                        count: d.tasksToDo,
+                      ),
                       const SizedBox(height: 9),
                       _StatusRow(
-                          color: p.accent,
-                          label: 'In Progress',
-                          count: d.tasksInProgress),
+                        color: p.accent,
+                        label: 'In Progress',
+                        count: d.tasksInProgress,
+                      ),
                       const SizedBox(height: 9),
                       _StatusRow(
-                          color: p.statusReview,
-                          label: 'Review',
-                          count: d.tasksReview),
+                        color: p.statusReview,
+                        label: 'Review',
+                        count: d.tasksReview,
+                      ),
                     ],
                   );
                 },
@@ -185,7 +213,8 @@ class DashboardScreen extends ConsumerWidget {
           final accent = ref.watch(accentProvider);
           final platformDark =
               MediaQuery.platformBrightnessOf(context) == Brightness.dark;
-          final isDark = mode == ThemeMode.dark ||
+          final isDark =
+              mode == ThemeMode.dark ||
               (mode == ThemeMode.system && platformDark);
           return Padding(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
@@ -204,27 +233,34 @@ class DashboardScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 18),
-                Text('Tweaks',
-                    style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: p.text)),
+                Text(
+                  'Tweaks',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: p.text,
+                  ),
+                ),
                 const SizedBox(height: 18),
                 Row(
                   children: [
                     Icon(
-                        isDark
-                            ? Icons.dark_mode_rounded
-                            : Icons.light_mode_rounded,
-                        size: 20,
-                        color: p.text2),
+                      isDark
+                          ? Icons.dark_mode_rounded
+                          : Icons.light_mode_rounded,
+                      size: 20,
+                      color: p.text2,
+                    ),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: Text('Dark theme',
-                          style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: p.text)),
+                      child: Text(
+                        'Dark theme',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: p.text,
+                        ),
+                      ),
                     ),
                     Switch(
                       value: isDark,
@@ -236,11 +272,14 @@ class DashboardScreen extends ConsumerWidget {
                   ],
                 ),
                 const SizedBox(height: 12),
-                Text('Accent',
-                    style: TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w700,
-                        color: p.text2)),
+                Text(
+                  'Accent',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: p.text2,
+                  ),
+                ),
                 const SizedBox(height: 10),
                 Row(
                   children: [
@@ -258,15 +297,19 @@ class DashboardScreen extends ConsumerWidget {
                             boxShadow: accent.toARGB32() == c.toARGB32()
                                 ? [
                                     BoxShadow(
-                                        color: c.withValues(alpha: 0.5),
-                                        blurRadius: 0,
-                                        spreadRadius: 3)
+                                      color: c.withValues(alpha: 0.5),
+                                      blurRadius: 0,
+                                      spreadRadius: 3,
+                                    ),
                                   ]
                                 : null,
                           ),
                           child: accent.toARGB32() == c.toARGB32()
-                              ? const Icon(Icons.check_rounded,
-                                  size: 18, color: Colors.white)
+                              ? const Icon(
+                                  Icons.check_rounded,
+                                  size: 18,
+                                  color: Colors.white,
+                                )
                               : null,
                         ),
                       ),
@@ -297,7 +340,10 @@ class DashboardScreen extends ConsumerWidget {
                     ref.invalidate(dashboardProvider);
                     if (context.mounted) {
                       Navigator.pushNamedAndRemoveUntil(
-                          context, AppRoutes.login, (r) => false);
+                        context,
+                        AppRoutes.login,
+                        (r) => false,
+                      );
                     }
                   },
                 ),
@@ -335,9 +381,14 @@ class _SheetAction extends StatelessWidget {
           children: [
             Icon(icon, size: 20, color: color),
             const SizedBox(width: 12),
-            Text(label,
-                style: TextStyle(
-                    fontSize: 14, fontWeight: FontWeight.w700, color: color)),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: color,
+              ),
+            ),
           ],
         ),
       ),
@@ -359,9 +410,14 @@ class _ErrorBox extends StatelessWidget {
           Icon(Icons.error_outline_rounded, size: 20, color: p.danger),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(message,
-                style: TextStyle(
-                    fontSize: 12.5, fontWeight: FontWeight.w600, color: p.text2)),
+            child: Text(
+              message,
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: p.text2,
+              ),
+            ),
           ),
         ],
       ),
@@ -395,22 +451,30 @@ class _StatCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon,
-              size: 20,
-              color: accent ? p.onAccent.withValues(alpha: 0.9) : p.accent),
+          Icon(
+            icon,
+            size: 20,
+            color: accent ? p.onAccent.withValues(alpha: 0.9) : p.accent,
+          ),
           const SizedBox(height: 8),
-          Text(value,
-              style: TextStyle(
-                  fontSize: 30,
-                  height: 1,
-                  fontWeight: FontWeight.w800,
-                  color: fg)),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 30,
+              height: 1,
+              fontWeight: FontWeight.w800,
+              color: fg,
+            ),
+          ),
           const SizedBox(height: 3),
-          Text(label,
-              style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: accent ? p.onAccent.withValues(alpha: 0.85) : p.text3)),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: accent ? p.onAccent.withValues(alpha: 0.85) : p.text3,
+            ),
+          ),
         ],
       ),
     );
@@ -438,20 +502,35 @@ class _WeeklyProgress extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Weekly progress',
-                  style: TextStyle(
-                      fontSize: 13, fontWeight: FontWeight.w700, color: p.text)),
-              Text('${(percent * 100).round()}%',
-                  style: TextStyle(
-                      fontSize: 13, fontWeight: FontWeight.w800, color: p.accent)),
+              Text(
+                'Overall progress',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: p.text,
+                ),
+              ),
+              Text(
+                '${(percent * 100).round()}%',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: p.accent,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),
           TfProgressBar(value: percent, height: 10),
           const SizedBox(height: 9),
-          Text('$done of $total tasks completed · $left left',
-              style: TextStyle(
-                  fontSize: 11.5, fontWeight: FontWeight.w600, color: p.text3)),
+          Text(
+            '$done of $total tasks completed · $left left',
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
+              color: p.text3,
+            ),
+          ),
         ],
       ),
     );
@@ -462,8 +541,11 @@ class _StatusRow extends StatelessWidget {
   final Color color;
   final String label;
   final int count;
-  const _StatusRow(
-      {required this.color, required this.label, required this.count});
+  const _StatusRow({
+    required this.color,
+    required this.label,
+    required this.count,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -476,13 +558,23 @@ class _StatusRow extends StatelessWidget {
           TfStatusDot(color: color),
           const SizedBox(width: 11),
           Expanded(
-            child: Text(label,
-                style: TextStyle(
-                    fontSize: 13, fontWeight: FontWeight.w600, color: p.text)),
-          ),
-          Text('$count',
+            child: Text(
+              label,
               style: TextStyle(
-                  fontSize: 14, fontWeight: FontWeight.w800, color: p.text)),
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: p.text,
+              ),
+            ),
+          ),
+          Text(
+            '$count',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              color: p.text,
+            ),
+          ),
         ],
       ),
     );

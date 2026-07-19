@@ -53,15 +53,19 @@ class _WorkspaceMembersScreenState
       FocusScope.of(context).unfocus();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: const Text('Đã gửi lời mời — chờ họ đồng ý'),
-            backgroundColor: p.success),
+          content: const Text('Invitation sent — waiting for them to accept'),
+          backgroundColor: p.success,
+        ),
       );
     } else {
-      final error = ref.read(workspaceMembersProvider(widget.workspaceId)).error;
+      final error = ref
+          .read(workspaceMembersProvider(widget.workspaceId))
+          .error;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text(error ?? 'Không mời được thành viên'),
-            backgroundColor: p.danger),
+          content: Text(error ?? 'Could not invite member'),
+          backgroundColor: p.danger,
+        ),
       );
     }
   }
@@ -94,26 +98,34 @@ class _WorkspaceMembersScreenState
                 children: [
                   GestureDetector(
                     onTap: () => Navigator.maybePop(context),
-                    child:
-                        Icon(Icons.arrow_back_rounded, size: 22, color: p.text2),
+                    child: Icon(
+                      Icons.arrow_back_rounded,
+                      size: 22,
+                      color: p.text2,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Members',
-                            style: TextStyle(
-                                fontSize: 17,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: -0.2,
-                                color: p.text)),
                         Text(
-                            '${widget.workspaceName} · ${state.members.length} people',
-                            style: TextStyle(
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w600,
-                                color: p.text3)),
+                          'Members',
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.2,
+                            color: p.text,
+                          ),
+                        ),
+                        Text(
+                          '${widget.workspaceName} · ${state.members.length} people',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: p.text3,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -124,83 +136,105 @@ class _WorkspaceMembersScreenState
             Expanded(
               child: state.isLoading && state.members.isEmpty
                   ? const Center(child: CircularProgressIndicator())
-                  : ListView(
-                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-                      children: [
-                        if (canInvite) ...[
-                          TfCard(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    TfIconBadge(
+                  : RefreshIndicator(
+                      onRefresh: () => ref
+                          .read(
+                            workspaceMembersProvider(
+                              widget.workspaceId,
+                            ).notifier,
+                          )
+                          .fetchMembers(),
+                      child: ListView(
+                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                        children: [
+                          if (canInvite) ...[
+                            TfCard(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      TfIconBadge(
                                         icon: Icons.mail_outline_rounded,
                                         color: p.accent,
                                         size: 34,
-                                        iconSize: 18),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text('Invite to workspace',
+                                        iconSize: 18,
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Invite to workspace',
                                               style: TextStyle(
-                                                  fontSize: 14,
-                                                  fontWeight: FontWeight.w800,
-                                                  color: p.text)),
-                                          Text(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w800,
+                                                color: p.text,
+                                              ),
+                                            ),
+                                            Text(
                                               'They get an invite and must accept to join.',
                                               style: TextStyle(
-                                                  fontSize: 11.5,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: p.text3)),
-                                        ],
+                                                fontSize: 11.5,
+                                                fontWeight: FontWeight.w600,
+                                                color: p.text3,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 14),
+                                  TfLabeledField(
+                                    label: 'Email',
+                                    icon: Icons.alternate_email_rounded,
+                                    controller: _emailController,
+                                    hint: 'name@company.com',
+                                    keyboardType: TextInputType.emailAddress,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  TfPrimaryButton(
+                                    label: 'Send invite',
+                                    loading: _sending,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 13,
                                     ),
-                                  ],
-                                ),
-                                const SizedBox(height: 14),
-                                TfLabeledField(
-                                  label: 'Email',
-                                  icon: Icons.alternate_email_rounded,
-                                  controller: _emailController,
-                                  hint: 'name@company.com',
-                                  keyboardType: TextInputType.emailAddress,
-                                ),
-                                const SizedBox(height: 12),
-                                TfPrimaryButton(
-                                  label: 'Send invite',
-                                  loading: _sending,
-                                  padding: const EdgeInsets.symmetric(vertical: 13),
-                                  onTap: _invite,
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                        ],
-                        TfSectionLabel('Members · ${state.members.length}',
-                            padding: const EdgeInsets.fromLTRB(2, 0, 0, 10)),
-                        if (state.error != null && state.members.isEmpty)
-                          Text(state.error!,
-                              style: TextStyle(
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w600,
-                                  color: p.danger))
-                        else
-                          for (final m in state.members)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 10),
-                              child: _MemberRow(
-                                member: m,
-                                isMe: m.id == me?.id,
-                                canManage: isOwner && m.role != 'Owner',
-                                onManage: () => _memberActions(m),
+                                    onTap: _invite,
+                                  ),
+                                ],
                               ),
                             ),
-                      ],
+                            const SizedBox(height: 20),
+                          ],
+                          TfSectionLabel(
+                            'Members · ${state.members.length}',
+                            padding: const EdgeInsets.fromLTRB(2, 0, 0, 10),
+                          ),
+                          if (state.error != null && state.members.isEmpty)
+                            Text(
+                              state.error!,
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w600,
+                                color: p.danger,
+                              ),
+                            )
+                          else
+                            for (final m in state.members)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: _MemberRow(
+                                  member: m,
+                                  isMe: m.id == me?.id,
+                                  canManage: isOwner && m.role != 'Owner',
+                                  onManage: () => _memberActions(m),
+                                ),
+                              ),
+                        ],
+                      ),
                     ),
             ),
           ],
@@ -211,8 +245,9 @@ class _WorkspaceMembersScreenState
 
   void _memberActions(UserEntity member) {
     final p = context.palette;
-    final notifier =
-        ref.read(workspaceMembersProvider(widget.workspaceId).notifier);
+    final notifier = ref.read(
+      workspaceMembersProvider(widget.workspaceId).notifier,
+    );
     showModalBottomSheet(
       context: context,
       backgroundColor: p.surface,
@@ -225,12 +260,22 @@ class _WorkspaceMembersScreenState
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(member.fullName,
-                style: TextStyle(
-                    fontSize: 16, fontWeight: FontWeight.w800, color: p.text)),
-            Text(member.email,
-                style: TextStyle(
-                    fontSize: 12, fontWeight: FontWeight.w600, color: p.text3)),
+            Text(
+              member.fullName,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: p.text,
+              ),
+            ),
+            Text(
+              member.email,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: p.text3,
+              ),
+            ),
             const SizedBox(height: 12),
             if (member.role != 'Admin')
               _Action(
@@ -291,9 +336,14 @@ class _Action extends StatelessWidget {
           children: [
             Icon(icon, size: 20, color: color),
             const SizedBox(width: 12),
-            Text(label,
-                style: TextStyle(
-                    fontSize: 14, fontWeight: FontWeight.w700, color: color)),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: color,
+              ),
+            ),
           ],
         ),
       ),
@@ -322,9 +372,10 @@ class _MemberRow extends StatelessWidget {
       child: Row(
         children: [
           TfAvatar(
-              initials: initialsOf(member.fullName),
-              color: avatarColorFor(member.id),
-              size: 36),
+            initials: initialsOf(member.fullName),
+            color: avatarColorFor(member.id),
+            size: 36,
+          ),
           const SizedBox(width: 11),
           Expanded(
             child: Column(
@@ -334,33 +385,41 @@ class _MemberRow extends StatelessWidget {
                   children: [
                     Flexible(
                       child: Text(
-                          member.fullName.isNotEmpty
-                              ? member.fullName
-                              : member.email,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: p.text)),
+                        member.fullName.isNotEmpty
+                            ? member.fullName
+                            : member.email,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: p.text,
+                        ),
+                      ),
                     ),
                     if (isMe) ...[
                       const SizedBox(width: 6),
-                      Text('(you)',
-                          style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: p.text3)),
+                      Text(
+                        '(you)',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: p.text3,
+                        ),
+                      ),
                     ],
                   ],
                 ),
-                Text(member.email,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: p.text3)),
+                Text(
+                  member.email,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: p.text3,
+                  ),
+                ),
               ],
             ),
           ),
@@ -372,12 +431,15 @@ class _MemberRow extends StatelessWidget {
                 color: p.tint(p.warning, 0.16),
                 borderRadius: BorderRadius.circular(999),
               ),
-              child: Text('PENDING',
-                  style: TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.4,
-                      color: p.warning)),
+              child: Text(
+                'PENDING',
+                style: TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.4,
+                  color: p.warning,
+                ),
+              ),
             )
           else
             RoleBadge(role: member.role ?? 'Member'),
@@ -415,12 +477,15 @@ class RoleBadge extends StatelessWidget {
         color: bg,
         borderRadius: BorderRadius.circular(999),
       ),
-      child: Text(role.toUpperCase(),
-          style: TextStyle(
-              fontSize: 9,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.4,
-              color: color)),
+      child: Text(
+        role.toUpperCase(),
+        style: TextStyle(
+          fontSize: 9,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.4,
+          color: color,
+        ),
+      ),
     );
   }
 }

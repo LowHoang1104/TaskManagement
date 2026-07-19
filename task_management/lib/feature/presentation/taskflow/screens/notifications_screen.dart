@@ -5,6 +5,7 @@ import '../../../../app/theme/app_palette.dart';
 import '../../../domain/entities/notification_entity.dart';
 import '../../providers/notification_provider.dart';
 import '../../providers/workspace_provider.dart';
+import '../../providers/workspace_members_provider.dart';
 import '../widgets/tf_widgets.dart';
 
 /// Notifications inbox — redesigned UI from `TaskFlow.dc.html` (04 — System),
@@ -272,11 +273,13 @@ class _NotifCard extends ConsumerWidget {
             notification.relatedId!, notification.id);
     if (!context.mounted) return;
     if (ok) {
-      // The workspace list changes on accept/decline.
+      // The workspace list changes on accept/decline; the member list must also
+      // refetch so the just-accepted invite no longer shows as "Pending".
       ref.invalidate(workspaceNotifierProvider);
+      ref.invalidate(workspaceMembersProvider(notification.relatedId!));
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text(accept ? 'Đã tham gia workspace' : 'Đã từ chối lời mời'),
+            content: Text(accept ? 'Joined the workspace' : 'Invitation declined'),
             backgroundColor: accept ? p.success : p.text2),
       );
     } else {

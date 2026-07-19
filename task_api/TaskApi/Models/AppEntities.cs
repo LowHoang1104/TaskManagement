@@ -96,6 +96,9 @@ namespace TaskApi.Models
         public string ReporterId { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+        // Set when the task moves to "done"; cleared if it is reopened. Lets the
+        // dashboard count what was actually completed within a given week.
+        public DateTime? CompletedAt { get; set; }
 
         public Project Project { get; set; } = null!;
         public User? Assignee { get; set; }

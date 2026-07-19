@@ -7,11 +7,9 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'feature/presentation/providers/theme_provider.dart';
 
-import 'package:sentry_flutter/sentry_flutter.dart';
-
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Remove the '#' from the URL in Flutter Web
   usePathUrlStrategy();
 
@@ -24,20 +22,13 @@ Future<void> main() async {
   // Initialize SharedPreferences for theme
   final prefs = await SharedPreferences.getInstance();
 
-  await SentryFlutter.init(
-    (options) {
-      // TODO: Replace with actual Sentry DSN when ready
-      options.dsn = 'https://example@sentry.io/add-your-dsn-here';
-      options.tracesSampleRate = 1.0;
-    },
-    appRunner: () => runApp(
-      // ProviderScope is required by Riverpod
-      ProviderScope(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(prefs),
-        ],
-        child: const App(),
-      ),
+  // ProviderScope is required by Riverpod
+  runApp(
+    ProviderScope(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+      ],
+      child: const App(),
     ),
   );
 }

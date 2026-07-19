@@ -3,14 +3,14 @@ using System.Threading.Tasks;
 
 namespace TaskApi.Hubs
 {
-    // TODO: Bỏ comment [Authorize] sau khi Frontend hoàn thành việc truyền JWT Token
+    // TODO: Uncomment [Authorize] once the frontend passes the JWT token.
     // [Authorize]
     public class NotificationHub : Hub
     {
         public async Task SendNotificationToUser(string userId, string message)
         {
-            // Trong thực tế, bạn cần mapping từ userId sang ConnectionId
-            // Ở đây gửi tạm một hàm mô phỏng tới tất cả client
+            // In production, map userId to its ConnectionId; for now this
+            // broadcasts to all connected clients as a placeholder.
             await Clients.All.SendAsync("ReceiveNotification", message);
         }
 

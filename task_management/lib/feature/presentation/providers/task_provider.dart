@@ -93,8 +93,8 @@ class TaskNotifier extends StateNotifier<TaskState> {
     state = state.copyWith(tasks: updatedTasks);
   }
 
-  Future<TaskEntity?> createTask(String title, String description, TaskStatus status, TaskPriority priority) async {
-    final result = await _service.createTask(projectId, title, description, status, priority);
+  Future<TaskEntity?> createTask(String title, String description, TaskStatus status, TaskPriority priority, {String? assigneeId}) async {
+    final result = await _service.createTask(projectId, title, description, status, priority, assigneeId: assigneeId);
     return result.fold(
       (error) {
         state = state.copyWith(error: error);

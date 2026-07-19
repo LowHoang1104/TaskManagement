@@ -14,7 +14,7 @@ import 'workspace_members_screen.dart';
 /// ([WorkspaceMembersScreen]); only workspace members can then be added to a
 /// project — so here you search the workspace roster by name/email instead of
 /// typing a raw address. The backend enforces the same rule
-/// ("Người này chưa tham gia Workspace.").
+/// ("This user is not a member of the workspace.").
 Future<void> showInviteMemberDialog(
   BuildContext context, {
   required String projectId,
@@ -69,14 +69,14 @@ class _InviteMemberDialogState extends ConsumerState<_InviteMemberDialog> {
     if (ok) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text('Đã thêm ${user.fullName} vào project'),
+            content: Text('Added ${user.fullName} to the project'),
             backgroundColor: p.success),
       );
     } else {
       final error = ref.read(projectMembersProvider(widget.projectId)).error;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text(error ?? 'Không thêm được thành viên'),
+            content: Text(error ?? 'Could not add member'),
             backgroundColor: p.danger),
       );
     }

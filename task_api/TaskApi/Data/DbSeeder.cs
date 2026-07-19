@@ -4,10 +4,13 @@ namespace TaskApi.Data
 {
     /// <summary>
     /// Seeds a rich, representative dataset so the app has real rows to render:
-    /// several users, two workspaces, projects in every state, tasks covering
-    /// every status / priority / deadline case (overdue, today, upcoming, none),
-    /// comments, an attachment, checklist items, a task dependency (blocked-by),
-    /// tags and notifications (including a pending project invite).
+    /// several users, four workspaces (incl. one where the primary user is only
+    /// a Member), ~16 projects and a large volume of tasks covering every status
+    /// / priority / deadline case (overdue, today, upcoming, none) plus completed
+    /// tasks with a real completion time (some this week, some earlier). Also
+    /// seeds comments, an attachment, checklist items, a task dependency
+    /// (blocked-by), tags and notifications (including a pending project invite).
+    /// The bulk portion is deterministic (fixed Random seed) so re-seeds reproduce.
     ///
     /// Idempotent: does nothing if any users already exist. To re-seed, empty the
     /// tables (or drop &amp; re-create the DB) and restart the API.
@@ -225,6 +228,15 @@ namespace TaskApi.Data
             var qLanding = T(pQ2.Id, "Landing page A/B test", null, "done", "medium", null, an.Id, an.Id);
             var qReport = T(pQ2.Id, "Post-campaign report", null, "done", "low", null, an.Id, an.Id);
 
+            // Stamp completion time on the done tasks so the dashboard's
+            // "done this week" figure is meaningful — some finished this week,
+            // some earlier (so the weekly count is a subset of the all-time total).
+            tOnboard.CompletedAt = today.AddHours(10);  // this week (An)
+            tCi.CompletedAt = now.AddDays(-20);         // earlier (Minh)
+            qEmail.CompletedAt = now.AddDays(-30);      // earlier
+            qLanding.CompletedAt = today.AddHours(9);   // this week (An)
+            qReport.CompletedAt = now.AddDays(-25);     // earlier
+
             var allTasks = new[]
             {
                 tMigrate, tAudit, tPhoto, tCheckout, tPr, tPalette, tTokens, tNav,
@@ -232,6 +244,117 @@ namespace TaskApi.Data
                 qEmail, qLanding, qReport,
             };
             db.Tasks.AddRange(allTasks);
+            db.SaveChanges();
+
+            // ═══ Bulk dataset ═══════════════════════════════════════════════
+            // Enough volume to exercise project search/filter, task filters,
+            // kanban sort, the four deadline buckets, done-this-week stats and
+            // role-based button hiding. Deterministic (fixed seed) so re-seeds
+            // reproduce the same data.
+            var rnd = new Random(42);
+            var statusPool = new[] { "todo", "doing", "review", "done" };
+            var priorityPool = new[] { "low", "medium", "high", "critical" };
+            var acmeTeam = new[] { an.Id, kim.Id, tran.Id, minh.Id, le.Id };
+
+            // A workspace An only *belongs to* (Member) — verifies the "create
+            // project" button is hidden for non Owner/Admin.
+            var wsClient = new Workspace
+            {
+                Id = Guid.NewGuid().ToString(),
+                Name = "Client Space",
+                Description = "Shared space where An is only a member.",
+                OwnerId = tran.Id,
+                CreatedAt = now,
+                UpdatedAt = now,
+            };
+            db.Workspaces.Add(wsClient);
+            db.SaveChanges();
+            db.WorkspaceMembers.AddRange(
+                WM(wsClient.Id, tran.Id, "Owner"),
+                WM(wsClient.Id, an.Id, "Member"),
+                WM(wsClient.Id, minh.Id, "Member")
+            );
+            db.SaveChanges();
+
+            // (workspace, project name, An's role) — An's role varies so both the
+            // "can manage" (Owner/Admin) and read-only (Member) paths are covered.
+            var blueprints = new (Workspace ws, string name, string anRole)[]
+            {
+                (wsAcme, "Marketing Website", "Owner"),
+                (wsAcme, "Data Platform", "Admin"),
+                (wsAcme, "Customer Portal", "Member"),
+                (wsAcme, "Internal Tools", "Owner"),
+                (wsAcme, "Growth Experiments", "Admin"),
+                (wsAcme, "Payments Service", "Member"),
+                (wsAcme, "Analytics Dashboard", "Owner"),
+                (wsAcme, "Support Desk", "Member"),
+                (wsAcme, "Infrastructure", "Admin"),
+                (wsAcme, "Localization", "Owner"),
+                (wsClient, "Client Onboarding", "Member"),
+                (wsClient, "Client Reporting", "Member"),
+            };
+
+            var bulkTasks = new List<TaskItem>();
+            foreach (var bp in blueprints)
+            {
+                var proj = NewProject(bp.ws.Id, bp.name,
+                    $"{bp.name} — seeded project for testing.", "Active");
+                db.Projects.Add(proj);
+                db.SaveChanges();
+
+                // If An isn't Owner, hand ownership to a teammate so the project
+                // still has a valid Owner.
+                if (bp.anRole == "Owner")
+                {
+                    db.ProjectMembers.AddRange(
+                        PM(proj.Id, an.Id, "Owner"),
+                        PM(proj.Id, kim.Id, "Member"),
+                        PM(proj.Id, minh.Id, "Member"));
+                }
+                else
+                {
+                    db.ProjectMembers.AddRange(
+                        PM(proj.Id, kim.Id, "Owner"),
+                        PM(proj.Id, an.Id, bp.anRole),
+                        PM(proj.Id, tran.Id, "Member"));
+                }
+                db.SaveChanges();
+
+                var count = rnd.Next(9, 16);
+                for (var i = 1; i <= count; i++)
+                {
+                    var status = statusPool[rnd.Next(statusPool.Length)];
+                    var priority = priorityPool[rnd.Next(priorityPool.Length)];
+
+                    // Deadline spread across the four buckets (plus some with none).
+                    DateTime? deadline = rnd.Next(5) switch
+                    {
+                        0 => today.AddDays(-rnd.Next(1, 12)).AddHours(17), // overdue
+                        1 => today.AddHours(9 + rnd.Next(0, 10)),          // due today
+                        2 => today.AddDays(rnd.Next(1, 21)).AddHours(17),  // upcoming
+                        3 => today.AddDays(rnd.Next(1, 45)).AddHours(17),  // later
+                        _ => (DateTime?)null,                               // none
+                    };
+
+                    // Bias assignment towards An so "My Tasks" is well populated.
+                    var assignee = rnd.Next(2) == 0
+                        ? an.Id
+                        : acmeTeam[rnd.Next(acmeTeam.Length)];
+
+                    var t = T(proj.Id, $"{bp.name} · task {i}", null,
+                        status, priority, deadline, assignee, an.Id);
+
+                    if (status == "done")
+                    {
+                        // ~half completed this week, the rest earlier.
+                        t.CompletedAt = rnd.Next(2) == 0
+                            ? today.AddHours(9 + rnd.Next(0, 8))      // this week
+                            : now.AddDays(-(10 + rnd.Next(0, 40)));   // older
+                    }
+                    bulkTasks.Add(t);
+                }
+            }
+            db.Tasks.AddRange(bulkTasks);
             db.SaveChanges();
 
             // ── Comments (on Design system tokens) ─────────────────────────

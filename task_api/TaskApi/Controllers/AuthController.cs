@@ -47,7 +47,7 @@ namespace TaskApi.Controllers
             if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
             if (avatar == null || avatar.Length == 0)
-                return BadRequest(new { message = "Không tìm thấy ảnh." });
+                return BadRequest(new { message = "No image file found." });
 
             try
             {
