@@ -133,7 +133,7 @@ class TaskRepositoryImp implements ITaskRepository {
     try {
       final response = await _dio.put(
         '${TaskEndpoints.byProject(projectId)}/$taskId',
-        data: {'assigneeId': assigneeId},
+        data: {'assigneeId': assigneeId ?? ""},
       );
 
       final json = response.data;

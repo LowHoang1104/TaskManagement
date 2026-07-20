@@ -39,6 +39,48 @@ namespace TaskApi.Controllers
             return Ok(response);
         }
 
+        [HttpPost("google")]
+        public async Task<IActionResult> GoogleLogin(GoogleLoginRequest request)
+        {
+            try
+            {
+                var response = await _authService.GoogleLoginAsync(request);
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPost("send-otp")]
+        public async Task<IActionResult> SendOtp(SendOtpRequest request)
+        {
+            try
+            {
+                var response = await _authService.SendOtpAsync(request);
+                return Ok(new { success = response });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPost("verify-otp")]
+        public async Task<IActionResult> VerifyOtp(VerifyOtpRequest request)
+        {
+            try
+            {
+                var response = await _authService.VerifyOtpAndRegisterAsync(request);
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
         [HttpPost("avatar")]
         [Authorize]
         public async Task<IActionResult> UploadAvatar(IFormFile avatar)
@@ -53,6 +95,34 @@ namespace TaskApi.Controllers
             {
                 var userDto = await _authService.UploadAvatarAsync(userId, avatar);
                 return Ok(new { user = userDto });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordRequest request)
+        {
+            try
+            {
+                var response = await _authService.SendPasswordResetOtpAsync(request);
+                return Ok(new { success = response });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword(ResetPasswordRequest request)
+        {
+            try
+            {
+                var response = await _authService.ResetPasswordAsync(request);
+                return Ok(new { success = response });
             }
             catch (Exception ex)
             {

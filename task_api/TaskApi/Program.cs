@@ -34,6 +34,7 @@ namespace TaskApi
             });
 
             builder.Services.AddSignalR();
+            builder.Services.AddMemoryCache();
             
             builder.Services.AddDbContext<AppDbContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -50,6 +51,7 @@ namespace TaskApi
             builder.Services.AddScoped<ICommentService, CommentService>();
             builder.Services.AddScoped<IAttachmentService, AttachmentService>();
             builder.Services.AddScoped<IDashboardService, DashboardService>();
+            builder.Services.AddScoped<IEmailService, EmailService>();
 
             // JWT Auth
             var jwtSettings = builder.Configuration.GetSection("Jwt");
@@ -117,11 +119,8 @@ namespace TaskApi
             }
 
             // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
-            {
-                app.UseSwagger();
-                app.UseSwaggerUI();
-            }
+            app.UseSwagger();
+            app.UseSwaggerUI();
 
             // app.UseHttpsRedirection();
             

@@ -29,4 +29,34 @@ class AuthService implements IAuthService {
   Future<Either<String, UserEntity>> uploadAvatar({required String fileName, required List<int> fileBytes}) async {
     return await _repository.uploadAvatar(fileName: fileName, fileBytes: fileBytes);
   }
+
+  @override
+  Future<Either<String, UserEntity>> checkAuthStatus() async {
+    return await _repository.checkAuthStatus();
+  }
+
+  @override
+  Future<Either<String, UserEntity>> googleLogin() async {
+    return await _repository.googleLogin();
+  }
+
+  @override
+  Future<Either<String, void>> sendOtp(String email) async {
+    return await _repository.sendOtp(email);
+  }
+
+  @override
+  Future<Either<String, UserEntity>> verifyOtpAndRegister(String email, String otp, String password, String fullName) async {
+    return await _repository.verifyOtpAndRegister(email, otp, password, fullName);
+  }
+
+  @override
+  Future<Either<String, void>> forgotPassword(String email) async {
+    return await _repository.forgotPassword(email);
+  }
+
+  @override
+  Future<Either<String, void>> resetPassword(String email, String otp, String newPassword) async {
+    return await _repository.resetPassword(email, otp, newPassword);
+  }
 }

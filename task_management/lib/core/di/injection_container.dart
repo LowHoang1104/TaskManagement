@@ -7,6 +7,7 @@ import '../network/auth_interceptor.dart';
 import '../network/dio_client.dart';
 import '../storage/local_storage.dart';
 import '../storage/secure_storage.dart';
+import '../../feature/data/datasources/remote/signalr_service.dart';
 import '../../feature/domain/i_repositories/i_auth_repository.dart';
 import '../../feature/data/imp_repositories/auth_repository_imp.dart';
 import '../../feature/domain/i_repositories/i_workspace_repository.dart';
@@ -65,6 +66,10 @@ Future<void> init() async {
 
   sl.registerLazySingleton<LocalStorage>(
     () => LocalStorage(sl<SharedPreferences>()),
+  );
+
+  sl.registerLazySingleton<SignalRService>(
+    () => SignalRService(sl<SecureStorage>()),
   );
 
   // ─── Network ──────────────────────────────────────────────────────────────

@@ -9,6 +9,7 @@ import '../../providers/project_provider.dart';
 import '../../providers/task_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../taskflow/widgets/tf_widgets.dart';
+import 'forgot_password_screen.dart';
 
 /// Sign in — redesigned to match `TaskFlow.dc.html` (01 — Onboarding).
 class LoginScreen extends ConsumerStatefulWidget {
@@ -97,11 +98,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               const SizedBox(height: 12),
               Align(
                 alignment: Alignment.centerRight,
-                child: Text('Forgot password?',
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const ForgotPasswordScreen()),
+                    );
+                  },
+                  child: Text(
+                    'Forgot password?',
                     style: TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w700,
-                        color: p.accent)),
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: p.accent,
+                    ),
+                  ),
+                ),
               ),
               const SizedBox(height: 20),
 
@@ -117,7 +129,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
               _OrDivider(),
               const SizedBox(height: 20),
-              _GoogleButton(),
+              _GoogleButton(
+                onTap: () => ref.read(authNotifierProvider.notifier).googleLogin(),
+              ),
 
               const SizedBox(height: 28),
               Center(
@@ -221,28 +235,35 @@ class _OrDivider extends StatelessWidget {
 }
 
 class _GoogleButton extends StatelessWidget {
+  final VoidCallback? onTap;
+
+  const _GoogleButton({this.onTap});
+
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: BoxDecoration(
-        color: p.surface,
-        borderRadius: BorderRadius.circular(13),
-        border: Border.all(color: p.border2, width: 1.5),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text('G',
-              style: TextStyle(
-                  fontSize: 15, fontWeight: FontWeight.w800, color: p.accent)),
-          const SizedBox(width: 9),
-          Text('Google',
-              style: TextStyle(
-                  fontSize: 13.5, fontWeight: FontWeight.w700, color: p.text)),
-        ],
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: p.surface,
+          borderRadius: BorderRadius.circular(13),
+          border: Border.all(color: p.border2, width: 1.5),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('G',
+                style: TextStyle(
+                    fontSize: 15, fontWeight: FontWeight.w800, color: p.accent)),
+            const SizedBox(width: 9),
+            Text('Google',
+                style: TextStyle(
+                    fontSize: 13.5, fontWeight: FontWeight.w700, color: p.text)),
+          ],
+        ),
       ),
     );
   }

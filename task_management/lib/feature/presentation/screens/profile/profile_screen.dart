@@ -228,6 +228,7 @@ class ProfileScreen extends ConsumerWidget {
                         theme,
                         textColor: AppColors.error,
                         onTap: () async {
+                          final navigator = Navigator.of(context);
                           await ref.read(authNotifierProvider.notifier).logout();
                           
                           ref.invalidate(workspaceNotifierProvider);
@@ -236,9 +237,7 @@ class ProfileScreen extends ConsumerWidget {
                           ref.invalidate(notificationProvider);
                           ref.invalidate(dashboardProvider);
                           
-                          if (context.mounted) {
-                            Navigator.pushNamedAndRemoveUntil(context, AppRoutes.login, (route) => false);
-                          }
+                          navigator.pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
                         },
                       ),
                     ).animate().slideY(begin: 0.1, delay: 400.ms).fadeIn(),

@@ -1063,7 +1063,11 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                         ),
                       ),
                       const SizedBox(width: 16),
-                      Icon(Icons.more_vert_rounded, size: 22, color: p.text2),
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: _taskActions,
+                        child: Icon(Icons.more_vert_rounded, size: 22, color: p.text2),
+                      ),
                     ],
                   ),
                 ],
@@ -1431,6 +1435,110 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
 
   Widget _divider(BuildContext context) =>
       Container(height: 1, color: context.palette.border);
+
+  void _taskActions() {
+    final p = context.palette;
+    final canManage = _canManage();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: p.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+      ),
+      builder: (sheetCtx) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _SheetHandle(),
+            const SizedBox(height: 14),
+            Text(
+              'Task actions',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: p.text,
+              ),
+            ),
+            const SizedBox(height: 12),
+            if (canManage)
+              InkWell(
+                borderRadius: BorderRadius.circular(10),
+                onTap: () {
+                  Navigator.pop(sheetCtx);
+                  _confirmDeleteTask();
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete_outline_rounded, size: 20, color: p.danger),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Delete task',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: p.danger,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              Text(
+                'Only Owner/Admin can delete this task.',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: p.text3,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmDeleteTask() async {
+    final p = context.palette;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: p.surface,
+        title: Text(
+          'Delete task?',
+          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: p.text),
+        ),
+        content: Text(
+          'Are you sure you want to delete "${widget.task.title}"? This cannot be undone.',
+          style: TextStyle(fontSize: 13, color: p.text2),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text('Delete', style: TextStyle(color: p.danger)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    final ok = await ref.read(taskNotifierProvider(widget.task.projectId).notifier).deleteTask(widget.task.id);
+    if (!mounted) return;
+    if (ok) {
+      ref.invalidate(myTasksProvider); // update "My Tasks" too
+      Navigator.pop(context);
+    } else {
+      final err = ref.read(taskNotifierProvider(widget.task.projectId)).error;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(err ?? 'Could not delete task'), backgroundColor: p.danger),
+      );
+    }
+  }
 }
 
 class _SheetHandle extends StatelessWidget {

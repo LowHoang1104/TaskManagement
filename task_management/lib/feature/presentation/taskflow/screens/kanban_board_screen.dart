@@ -11,6 +11,7 @@ import '../widgets/tf_widgets.dart';
 import 'task_detail_screen.dart';
 import 'create_task_sheet.dart';
 import 'invite_member_dialog.dart';
+import '../../providers/auth_provider.dart';
 
 /// How the cards inside each status column are ordered.
 enum _BoardSort { deadline, created, priority, title }
@@ -318,19 +319,25 @@ class _Column extends ConsumerWidget {
   }
 }
 
-class _BoardCard extends StatelessWidget {
+class _BoardCard extends ConsumerWidget {
   final TaskEntity task;
   const _BoardCard({required this.task});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final p = context.palette;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final me = ref.watch(authNotifierProvider).user;
+    final isMine = task.assigneeId == me?.id && me?.id != null;
+    
     final highlighted = task.status == TaskStatus.doing;
     final done = task.status == TaskStatus.done;
+    
     return TfCard(
       radius: 15,
       padding: const EdgeInsets.all(13),
-      border: Border.all(color: highlighted ? p.accent : p.border),
+      color: isMine ? (isDark ? p.surface2 : p.surface.withAlpha(220)) : null,
+      border: Border.all(color: highlighted ? p.accent : (isMine ? p.accent.withAlpha(150) : p.border)),
       shadow: highlighted
           ? [
               BoxShadow(
@@ -339,7 +346,9 @@ class _BoardCard extends StatelessWidget {
                   offset: const Offset(0, 8),
                   spreadRadius: -12)
             ]
-          : null,
+          : (isMine 
+              ? [BoxShadow(color: p.accent.withValues(alpha: 0.1), blurRadius: 10)] 
+              : null),
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => TaskDetailScreen(task: task)),

@@ -111,9 +111,9 @@ namespace TaskApi.Services
 
             var actorMember = workspace.Members
                 .FirstOrDefault(m => m.UserId == actorId && m.Status == "Accepted");
-            if (actorMember == null || (actorMember.Role != "Owner" && actorMember.Role != "Admin"))
+            if (actorMember == null || actorMember.Role != "Owner")
             {
-                throw new UnauthorizedAccessException("Only Owners and Admins can invite members to the workspace.");
+                throw new UnauthorizedAccessException("Only Owners can invite members to the workspace.");
             }
 
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);

@@ -119,6 +119,11 @@ namespace TaskApi.Services
             task.ProjectId = projectId;
             task.ReporterId = reporterId;
             
+            if (task.AssigneeId != null && string.Equals(task.Status, "todo", StringComparison.OrdinalIgnoreCase))
+            {
+                task.Status = "InProgress";
+            }
+            
             // Generate order
             var maxOrder = await _context.Tasks
                 .Where(t => t.ProjectId == projectId && t.Status == task.Status)
@@ -161,9 +166,24 @@ namespace TaskApi.Services
                 throw new UnauthorizedAccessException("Only Owner/Admin can change the deadline.");
             }
 
-            if (request.AssigneeId != null && request.AssigneeId != task.AssigneeId && !isManager)
+            if (!isManager)
             {
-                throw new UnauthorizedAccessException("Only Owner/Admin can assign a task.");
+                if (request.AssigneeId != null && request.AssigneeId != task.AssigneeId)
+                {
+                    throw new UnauthorizedAccessException("Only Owner/Admin can assign a task.");
+                }
+                request.AssigneeId = task.AssigneeId; // Prevent unassigning
+            }
+
+            if (isManager && !string.IsNullOrEmpty(request.AssigneeId) && request.AssigneeId != task.AssigneeId)
+            {
+                if (string.Equals(task.Status, "todo", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (request.Status == null || string.Equals(request.Status, "todo", StringComparison.OrdinalIgnoreCase))
+                    {
+                        request.Status = "InProgress";
+                    }
+                }
             }
 
             // Status transition rules.
@@ -175,17 +195,26 @@ namespace TaskApi.Services
 
                 if (!isManager)
                 {
+                    if (task.AssigneeId != actorId)
+                    {
+                        throw new UnauthorizedAccessException("You can only move tasks assigned to you.");
+                    }
+
                     // A finished task is locked: members can no longer touch it.
                     if (currentStatus == "done")
                     {
                         throw new UnauthorizedAccessException(
                             "This task is Done — only Owner/Admin can change it.");
                     }
-                    // Members can move To Do → Doing → Review, but not to Done.
                     if (newStatus == "done")
                     {
                         throw new UnauthorizedAccessException(
                             "Only Owner/Admin can move a task to Done.");
+                    }
+                    
+                    if (currentStatus == "todo")
+                    {
+                        throw new UnauthorizedAccessException("You cannot move a task from ToDo. It must be assigned by an Admin first.");
                     }
                 }
 
@@ -216,6 +245,12 @@ namespace TaskApi.Services
             }
 
             _mapper.Map(request, task);
+            
+            if (request.AssigneeId == "")
+            {
+                task.AssigneeId = null;
+            }
+
             task.UpdatedAt = DateTime.UtcNow;
 
             // Stamp/clear the completion time so "done this week" reflects when a
@@ -301,15 +336,58 @@ namespace TaskApi.Services
 
             var isRelated = string.Equals(dependencyType, "Related", StringComparison.OrdinalIgnoreCase);
 
-            // A reverse edge already ties these two tasks together: that would be a
-            // cycle for a blocking link, or a duplicate for a "related" one.
             var reverseDep = await _context.Set<TaskDependency>()
                 .AnyAsync(d => d.SuccessorTaskId == predecessorId && d.PredecessorTaskId == successorId);
-            if (reverseDep)
+            if (reverseDep && isRelated)
             {
-                throw new Exception(isRelated
-                    ? "These two tasks are already linked."
-                    : "Circular dependency detected.");
+                throw new Exception("These two tasks are already linked.");
+            }
+
+            if (!isRelated)
+            {
+                var succTask = await _context.Tasks.FindAsync(successorId);
+                if (succTask != null)
+                {
+                    var projId = succTask.ProjectId;
+                    var allEdges = await _context.Set<TaskDependency>()
+                        .Include(d => d.SuccessorTask)
+                        .Where(d => d.SuccessorTask.ProjectId == projId && d.DependencyType != "Related")
+                        .ToListAsync();
+
+                    var adj = new Dictionary<string, List<string>>();
+                    foreach (var edge in allEdges)
+                    {
+                        if (!adj.ContainsKey(edge.PredecessorTaskId))
+                            adj[edge.PredecessorTaskId] = new List<string>();
+                        adj[edge.PredecessorTaskId].Add(edge.SuccessorTaskId);
+                    }
+
+                    var visited = new HashSet<string>();
+                    var queue = new Queue<string>();
+                    queue.Enqueue(successorId);
+                    visited.Add(successorId);
+
+                    while (queue.Count > 0)
+                    {
+                        var curr = queue.Dequeue();
+                        if (curr == predecessorId)
+                        {
+                            throw new Exception("Circular dependency detected. This would create a loop.");
+                        }
+
+                        if (adj.ContainsKey(curr))
+                        {
+                            foreach (var next in adj[curr])
+                            {
+                                if (!visited.Contains(next))
+                                {
+                                    visited.Add(next);
+                                    queue.Enqueue(next);
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             if (existingDep != null)

@@ -1,21 +1,29 @@
+import 'dart:async';
 import 'package:signalr_netcore/signalr_client.dart';
 import 'package:flutter/foundation.dart';
+import '../../../../core/storage/secure_storage.dart';
 
 class SignalRService {
   HubConnection? _hubConnection;
+  final SecureStorage secureStorage;
+  
+  final _notificationController = StreamController<String>.broadcast();
+  Stream<String> get notificationStream => _notificationController.stream;
   
   // Update this to your actual backend URL when testing on a real device
-  final String serverUrl = "https://10.0.2.2:5001/hubs/notifications"; // Android Emulator localhost
+  final String serverUrl = "https://taskapi20260720153803-b0dwbgggbebrcwg9.eastasia-01.azurewebsites.net/hubs/notifications";
 
-  SignalRService() {
+  SignalRService(this.secureStorage) {
     _initConnection();
   }
 
   void _initConnection() {
-    // TODO: Add JWT Token to options once Auth is implemented in Frontend
     _hubConnection = HubConnectionBuilder()
         .withUrl(serverUrl, options: HttpConnectionOptions(
-          // accessTokenFactory: () async => await secureStorage.getToken(),
+          accessTokenFactory: () async {
+            final token = await secureStorage.getAccessToken();
+            return token ?? "";
+          },
         ))
         .withAutomaticReconnect()
         .build();
@@ -47,8 +55,8 @@ class SignalRService {
   void _handleIncomingNotification(List<Object?>? arguments) {
     if (arguments != null && arguments.isNotEmpty) {
       final message = arguments[0] as String;
-      debugPrint("Received Notification: $message");
-      // TODO: Use Riverpod or local notifications to display this to the user
+      debugPrint("Received Notification via SignalR: $message");
+      _notificationController.add(message);
     }
   }
 }

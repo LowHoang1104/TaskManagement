@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/theme/app_palette.dart';
 import '../../../domain/entities/user_entity.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/project_members_provider.dart';
 import '../../providers/workspace_members_provider.dart';
 import '../tf_utils.dart';
@@ -87,6 +88,14 @@ class _InviteMemberDialogState extends ConsumerState<_InviteMemberDialog> {
     final p = context.palette;
     final projectState = ref.watch(projectMembersProvider(widget.projectId));
     final workspaceState = ref.watch(workspaceMembersProvider(widget.workspaceId));
+    final me = ref.watch(authNotifierProvider).user;
+    
+    final myRole = projectState.members
+        .where((m) => m.id == me?.id)
+        .map((m) => m.role)
+        .firstOrNull;
+    final isOwner = myRole == 'Owner';
+    final isAdmin = myRole == 'Admin';
 
     final memberIds = projectState.members.map((m) => m.id).toSet();
     final q = _query.trim().toLowerCase();
@@ -217,6 +226,14 @@ class _InviteMemberDialogState extends ConsumerState<_InviteMemberDialog> {
                                       color: p.text)),
                             ),
                             RoleBadge(role: m.role ?? 'Member'),
+                            if (m.id != me?.id && (isOwner || (isAdmin && m.role != 'Owner')))
+                              GestureDetector(
+                                onTap: () => _memberActions(m),
+                                child: Padding(
+                                  padding: const EdgeInsets.only(left: 4),
+                                  child: Icon(Icons.more_vert_rounded, size: 18, color: p.text3),
+                                ),
+                              ),
                           ],
                         ),
                       ),
@@ -230,6 +247,119 @@ class _InviteMemberDialogState extends ConsumerState<_InviteMemberDialog> {
               child: TextButton(
                 onPressed: () => Navigator.pop(context),
                 child: const Text('Done'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _memberActions(UserEntity member) {
+    final p = context.palette;
+    final notifier = ref.read(
+      projectMembersProvider(widget.projectId).notifier,
+    );
+    final myRole = ref.read(projectMembersProvider(widget.projectId)).members
+        .where((m) => m.id == ref.read(authNotifierProvider).user?.id)
+        .map((m) => m.role)
+        .firstOrNull;
+    final isOwner = myRole == 'Owner';
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: p.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+      ),
+      builder: (sheetCtx) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              member.fullName,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: p.text,
+              ),
+            ),
+            Text(
+              member.email,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: p.text3,
+              ),
+            ),
+            const SizedBox(height: 12),
+            if (isOwner && member.role != 'Admin')
+              _Action(
+                icon: Icons.shield_outlined,
+                label: 'Make Admin',
+                onTap: () {
+                  Navigator.pop(sheetCtx);
+                  notifier.updateRole(member.id, 'Admin');
+                },
+              ),
+            if (isOwner && member.role != 'Member')
+              _Action(
+                icon: Icons.person_outline_rounded,
+                label: 'Make Member',
+                onTap: () {
+                  Navigator.pop(sheetCtx);
+                  notifier.updateRole(member.id, 'Member');
+                },
+              ),
+            _Action(
+              icon: Icons.person_remove_alt_1_rounded,
+              label: 'Remove from project',
+              danger: true,
+              onTap: () {
+                Navigator.pop(sheetCtx);
+                notifier.removeMember(member.id);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Action extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool danger;
+  final VoidCallback onTap;
+  const _Action({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.danger = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final color = danger ? p.danger : p.text;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: color),
+            const SizedBox(width: 12),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: color,
               ),
             ),
           ],

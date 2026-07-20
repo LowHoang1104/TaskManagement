@@ -698,6 +698,12 @@ class _ProjectCard extends StatelessWidget {
                   ),
                 ),
                 _StatusBadge(done: done),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onLongPress, // Reusing long-press actions for tap on the dots
+                  child: Icon(Icons.more_vert_rounded, size: 20, color: p.text3),
+                ),
               ],
             ),
             if ((project.description ?? '').isNotEmpty) ...[

@@ -1,7 +1,7 @@
 // Android emulator: the host machine is reachable at 10.0.2.2 (NOT localhost,
 // which points at the emulator itself). For Windows desktop / web / Chrome,
-// switch back to 'http://localhost:5058/api'.
 // const String kBaseUrl = 'http://10.0.2.2:5058/api';
+// const String kBaseUrl = 'https://taskapi20260720153803-b0dwbgggbebrcwg9.eastasia-01.azurewebsites.net/api';
 const String kBaseUrl = 'http://localhost:5058/api';
 
 /// Timeout durations (in seconds).
@@ -19,6 +19,11 @@ class AuthEndpoints {
   static const String me = '/auth/me';
   static const String changePassword = '/auth/change-password';
   static const String uploadAvatar = '/auth/avatar';
+  static const String googleLogin = '/auth/google';
+  static const String sendOtp = '/auth/send-otp';
+  static const String verifyOtp = '/auth/verify-otp';
+  static const String forgotPassword = '/auth/forgot-password';
+  static const String resetPassword = '/auth/reset-password';
 }
 
 class ApiUtils {

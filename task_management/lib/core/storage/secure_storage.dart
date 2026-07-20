@@ -5,6 +5,7 @@ class _SecureKeys {
   static const String accessToken = 'access_token';
   static const String refreshToken = 'refresh_token';
   static const String userId = 'user_id';
+  static const String userJson = 'user_json';
 }
 
 /// Wrapper around [FlutterSecureStorage] for managing JWT tokens.
@@ -12,6 +13,12 @@ class SecureStorage {
   final FlutterSecureStorage _storage;
 
   const SecureStorage(this._storage);
+
+  // ─── User Cache ───────────────────────────────────────────────────────────
+  Future<void> saveUserJson(String jsonStr) =>
+      _storage.write(key: _SecureKeys.userJson, value: jsonStr);
+
+  Future<String?> getUserJson() => _storage.read(key: _SecureKeys.userJson);
 
   // ─── Access Token ─────────────────────────────────────────────────────────
   Future<void> saveAccessToken(String token) =>
@@ -52,6 +59,7 @@ class SecureStorage {
       _storage.delete(key: _SecureKeys.accessToken),
       _storage.delete(key: _SecureKeys.refreshToken),
       _storage.delete(key: _SecureKeys.userId),
+      _storage.delete(key: _SecureKeys.userJson),
     ]);
   }
 

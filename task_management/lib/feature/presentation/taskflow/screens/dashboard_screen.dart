@@ -331,20 +331,18 @@ class DashboardScreen extends ConsumerWidget {
                   label: 'Log out',
                   danger: true,
                   onTap: () async {
-                    Navigator.pop(context);
+                    final navigator = Navigator.of(context);
+                    navigator.pop();
                     await ref.read(authNotifierProvider.notifier).logout();
                     ref.invalidate(workspaceNotifierProvider);
                     ref.invalidate(projectNotifierProvider);
                     ref.invalidate(taskNotifierProvider);
                     ref.invalidate(notificationProvider);
                     ref.invalidate(dashboardProvider);
-                    if (context.mounted) {
-                      Navigator.pushNamedAndRemoveUntil(
-                        context,
-                        AppRoutes.login,
-                        (r) => false,
-                      );
-                    }
+                    navigator.pushNamedAndRemoveUntil(
+                      AppRoutes.login,
+                      (r) => false,
+                    );
                   },
                 ),
               ],

@@ -2,8 +2,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../domain/entities/notification_entity.dart';
 import '../../application/i_services/i_notification_service.dart';
+import 'dart:async';
 import '../../application/i_services/i_project_service.dart';
 import '../../application/i_services/i_workspace_service.dart';
+import '../../data/datasources/remote/signalr_service.dart';
 
 class NotificationState {
   final bool isLoading;
@@ -32,8 +34,22 @@ class NotificationState {
 }
 
 class NotificationNotifier extends StateNotifier<NotificationState> {
+  StreamSubscription<String>? _signalRSubscription;
+
   NotificationNotifier() : super(const NotificationState()) {
     fetchNotifications();
+    
+    // Listen to real-time notifications
+    _signalRSubscription = sl<SignalRService>().notificationStream.listen((message) {
+      // Whenever a SignalR push arrives, refetch the list
+      fetchNotifications();
+    });
+  }
+
+  @override
+  void dispose() {
+    _signalRSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> fetchNotifications() async {

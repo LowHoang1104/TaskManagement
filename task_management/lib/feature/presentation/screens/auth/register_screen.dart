@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pinput/pinput.dart';
 import '../../../../app/routes/app_routes.dart';
 import '../../../../app/theme/app_palette.dart';
 import '../../providers/auth_provider.dart';
@@ -22,12 +24,31 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _otpController = TextEditingController();
+  
+  bool _otpSent = false;
+  int _countdown = 60;
+  Timer? _timer;
+
+  void _startTimer() {
+    _countdown = 60;
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_countdown > 0) {
+        setState(() => _countdown--);
+      } else {
+        timer.cancel();
+      }
+    });
+  }
 
   @override
   void dispose() {
+    _timer?.cancel();
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _otpController.dispose();
     super.dispose();
   }
 
@@ -48,13 +69,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         ref.invalidate(taskNotifierProvider);
         ref.invalidate(notificationProvider);
         ref.invalidate(dashboardProvider);
-        Navigator.pushReplacementNamed(
-          context,
-          AppRoutes.verifyEmail,
-          arguments: _emailController.text.trim().isEmpty
-              ? 'an.nguyen@acme.co'
-              : _emailController.text.trim(),
-        );
+        Navigator.pushReplacementNamed(context, AppRoutes.home);
       }
     });
 
@@ -88,97 +103,178 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       fontSize: 14, fontWeight: FontWeight.w600, color: p.text3)),
               const SizedBox(height: 26),
 
-              TfLabeledField(
-                  label: 'Full name',
-                  icon: Icons.person_outline_rounded,
-                  controller: _nameController,
-                  hint: 'An Nguyen'),
-              const SizedBox(height: 14),
-              TfLabeledField(
-                  label: 'Email',
-                  icon: Icons.mail_outline_rounded,
-                  controller: _emailController,
-                  hint: 'an.nguyen@acme.co',
-                  keyboardType: TextInputType.emailAddress),
-              const SizedBox(height: 14),
-              TfLabeledField(
-                  label: 'Password',
-                  icon: Icons.lock_outline_rounded,
-                  controller: _passwordController,
-                  obscure: true,
-                  hint: '••••••'),
+              if (!_otpSent) ...[
+                TfLabeledField(
+                    label: 'Full name',
+                    icon: Icons.person_outline_rounded,
+                    controller: _nameController,
+                    hint: 'An Nguyen'),
+                const SizedBox(height: 14),
+                TfLabeledField(
+                    label: 'Email',
+                    icon: Icons.mail_outline_rounded,
+                    controller: _emailController,
+                    hint: 'an.nguyen@acme.co',
+                    keyboardType: TextInputType.emailAddress),
+                const SizedBox(height: 14),
+                TfLabeledField(
+                    label: 'Password',
+                    icon: Icons.lock_outline_rounded,
+                    controller: _passwordController,
+                    obscure: true,
+                    hint: '••••••'),
 
-              const SizedBox(height: 14),
-              _StrengthMeter(controller: _passwordController),
+                const SizedBox(height: 14),
+                _StrengthMeter(controller: _passwordController),
 
-              const SizedBox(height: 22),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 20,
-                    height: 20,
-                    margin: const EdgeInsets.only(top: 1),
-                    decoration: BoxDecoration(
-                      color: p.accent,
-                      borderRadius: BorderRadius.circular(6),
+                const SizedBox(height: 22),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 20,
+                      height: 20,
+                      margin: const EdgeInsets.only(top: 1),
+                      decoration: BoxDecoration(
+                        color: p.accent,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Icon(Icons.check_rounded, size: 15, color: p.onAccent),
                     ),
-                    child: Icon(Icons.check_rounded, size: 15, color: p.onAccent),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text.rich(
-                      TextSpan(
-                        text: 'I agree to the ',
-                        style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            height: 1.5,
-                            color: p.text2),
-                        children: [
-                          TextSpan(
-                              text: 'Terms of Service',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.w800, color: p.accent)),
-                          const TextSpan(text: ' and '),
-                          TextSpan(
-                              text: 'Privacy Policy',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.w800, color: p.accent)),
-                          const TextSpan(text: '.'),
-                        ],
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text.rich(
+                        TextSpan(
+                          text: 'I agree to the ',
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              height: 1.5,
+                              color: p.text2),
+                          children: [
+                            TextSpan(
+                                text: 'Terms of Service',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w800, color: p.accent)),
+                            const TextSpan(text: ' and '),
+                            TextSpan(
+                                text: 'Privacy Policy',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w800, color: p.accent)),
+                            const TextSpan(text: '.'),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 22),
+                TfPrimaryButton(
+                  label: 'Send OTP',
+                  loading: authState.isLoading,
+                  onTap: () async {
+                    if (_emailController.text.trim().isEmpty) return;
+                    final success = await ref.read(authNotifierProvider.notifier).sendOtp(_emailController.text.trim());
+                    if (success) {
+                      setState(() => _otpSent = true);
+                      _startTimer();
+                    }
+                  },
+                ),
+              ] else ...[
+                Text('Enter the 6-digit code sent to\n${_emailController.text.trim()}',
+                    style: TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.w600, color: p.text)),
+                const SizedBox(height: 26),
+                Center(
+                  child: Pinput(
+                    length: 6,
+                    controller: _otpController,
+                    defaultPinTheme: PinTheme(
+                      width: 48,
+                      height: 56,
+                      textStyle: TextStyle(
+                          fontSize: 20, color: p.text, fontWeight: FontWeight.w600),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: p.border2),
+                        borderRadius: BorderRadius.circular(12),
+                        color: p.surface2,
+                      ),
+                    ),
+                    focusedPinTheme: PinTheme(
+                      width: 48,
+                      height: 56,
+                      textStyle: TextStyle(
+                          fontSize: 20, color: p.text, fontWeight: FontWeight.w600),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: p.accent),
+                        borderRadius: BorderRadius.circular(12),
+                        color: p.surface,
                       ),
                     ),
                   ),
-                ],
-              ),
-
-              const SizedBox(height: 22),
-              TfPrimaryButton(
-                label: 'Create account',
-                loading: authState.isLoading,
-                onTap: () => ref.read(authNotifierProvider.notifier).register(
-                      _nameController.text.trim(),
-                      _emailController.text.trim(),
-                      _passwordController.text,
+                ),
+                const SizedBox(height: 24),
+                Center(
+                  child: GestureDetector(
+                    onTap: _countdown > 0
+                        ? null
+                        : () async {
+                            final success = await ref.read(authNotifierProvider.notifier).sendOtp(_emailController.text.trim());
+                            if (success) _startTimer();
+                          },
+                    child: Text(
+                      _countdown > 0
+                          ? 'Resend code in ${_countdown}s'
+                          : 'Resend code now',
+                      style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: _countdown > 0 ? p.text3 : p.accent),
                     ),
-              ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                TfPrimaryButton(
+                  label: 'Verify & Create Account',
+                  loading: authState.isLoading,
+                  onTap: () {
+                    if (_otpController.text.length == 6) {
+                      ref.read(authNotifierProvider.notifier).verifyOtpAndRegister(
+                            _emailController.text.trim(),
+                            _otpController.text,
+                            _passwordController.text,
+                            _nameController.text.trim(),
+                          );
+                    }
+                  },
+                ),
+              ],
 
               const SizedBox(height: 24),
               Center(
                 child: GestureDetector(
-                  onTap: () =>
-                      Navigator.pushReplacementNamed(context, AppRoutes.login),
+                  onTap: () {
+                    if (_otpSent) {
+                      setState(() {
+                        _otpSent = false;
+                        _timer?.cancel();
+                      });
+                    } else {
+                      Navigator.pushReplacementNamed(context, AppRoutes.login);
+                    }
+                  },
                   child: Text.rich(
                     TextSpan(
-                      text: 'Already have an account?  ',
+                      text: _otpSent ? '' : 'Already have an account?  ',
                       style: TextStyle(
                           fontSize: 12.5,
                           fontWeight: FontWeight.w600,
                           color: p.text3),
                       children: [
                         TextSpan(
-                            text: 'Sign in',
+                            text: _otpSent ? 'Change email' : 'Sign in',
                             style: TextStyle(
                                 fontWeight: FontWeight.w800, color: p.accent)),
                       ],

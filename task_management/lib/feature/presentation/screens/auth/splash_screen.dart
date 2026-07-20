@@ -2,24 +2,37 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../app/routes/app_routes.dart';
 import '../../../../core/constants/app_colors.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../providers/auth_provider.dart';
 
-class SplashScreen extends StatefulWidget {
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    // Simulate loading configuration, tokens, etc.
-    Future.delayed(const Duration(milliseconds: 2500), () {
-      if (mounted) {
+    Future.microtask(() => _checkAuth());
+  }
+
+  Future<void> _checkAuth() async {
+    // Check auth status concurrently with splash delay
+    final timer = Future.delayed(const Duration(milliseconds: 2000));
+    final authSuccess = await ref.read(authNotifierProvider.notifier).checkAuthStatus();
+    
+    await timer;
+    
+    if (mounted) {
+      if (authSuccess) {
+        Navigator.pushReplacementNamed(context, AppRoutes.home);
+      } else {
         Navigator.pushReplacementNamed(context, AppRoutes.login);
       }
-    });
+    }
   }
 
   @override

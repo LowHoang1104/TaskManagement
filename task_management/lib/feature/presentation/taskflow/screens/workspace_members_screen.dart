@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/theme/app_palette.dart';
 import '../../../domain/entities/user_entity.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/workspace_provider.dart';
 import '../../providers/workspace_members_provider.dart';
 import '../tf_utils.dart';
 import '../widgets/tf_widgets.dart';
@@ -79,7 +80,7 @@ class _WorkspaceMembersScreenState
         .where((m) => m.id == me?.id)
         .map((m) => m.role)
         .firstOrNull;
-    final canInvite = myRole == 'Owner' || myRole == 'Admin';
+    final canInvite = myRole == 'Owner';
     final isOwner = myRole == 'Owner';
 
     return Scaffold(
@@ -222,21 +223,43 @@ class _WorkspaceMembersScreenState
                                 color: p.danger,
                               ),
                             )
-                          else
-                            for (final m in state.members)
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 10),
-                                child: _MemberRow(
-                                  member: m,
-                                  isMe: m.id == me?.id,
-                                  canManage: isOwner && m.role != 'Owner',
-                                  onManage: () => _memberActions(m),
+                            else
+                              for (final m in state.members)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 10),
+                                  child: _MemberRow(
+                                    member: m,
+                                    isMe: m.id == me?.id,
+                                    canManage: isOwner && m.role != 'Owner',
+                                    onManage: () => _memberActions(m),
+                                  ),
+                                ),
+                            if (isOwner) ...[
+                              const SizedBox(height: 20),
+                              TfCard(
+                                padding: const EdgeInsets.all(16),
+                                child: InkWell(
+                                  onTap: _confirmDeleteWorkspace,
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.delete_outline_rounded, color: p.danger, size: 24),
+                                      const SizedBox(width: 12),
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text('Delete workspace', style: TextStyle(color: p.danger, fontWeight: FontWeight.w700, fontSize: 14)),
+                                          Text('This action cannot be undone.', style: TextStyle(color: p.danger.withOpacity(0.8), fontSize: 11.5)),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                        ],
+                            ],
+                          ],
+                        ),
                       ),
-                    ),
-            ),
+              ),
           ],
         ),
       ),
@@ -277,15 +300,6 @@ class _WorkspaceMembersScreenState
               ),
             ),
             const SizedBox(height: 12),
-            if (member.role != 'Admin')
-              _Action(
-                icon: Icons.shield_outlined,
-                label: 'Make Admin',
-                onTap: () {
-                  Navigator.pop(sheetCtx);
-                  notifier.updateRole(member.id, 'Admin');
-                },
-              ),
             if (member.role != 'Member')
               _Action(
                 icon: Icons.person_outline_rounded,
@@ -308,6 +322,44 @@ class _WorkspaceMembersScreenState
         ),
       ),
     );
+  }
+
+  Future<void> _confirmDeleteWorkspace() async {
+    final p = context.palette;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: p.surface,
+        title: Text(
+          'Delete workspace?',
+          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: p.text),
+        ),
+        content: Text(
+          'Are you sure you want to delete "${widget.workspaceName}"? This will permanently delete all projects and tasks inside it.',
+          style: TextStyle(fontSize: 13, color: p.text2),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text('Delete', style: TextStyle(color: p.danger)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    
+    final ok = await ref.read(workspaceNotifierProvider.notifier).deleteWorkspace(widget.workspaceId);
+    if (!mounted) return;
+    if (ok) {
+      // Go back to dashboard/projects screen
+      Navigator.pop(context);
+    } else {
+      final err = ref.read(workspaceNotifierProvider).error;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(err ?? 'Could not delete workspace'), backgroundColor: p.danger),
+      );
+    }
   }
 }
 
