@@ -84,13 +84,17 @@ class TaskNotifier extends StateNotifier<TaskState> {
     );
   }
 
-  void updateTaskAssigneeLocally(TaskEntity updatedTask) {
+  void updateTaskAssigneeLocally(TaskEntity updatedTask) => replaceTaskLocally(updatedTask);
+
+  /// Swaps a task in the board list with an updated copy (after it was changed
+  /// from the detail screen), without refetching.
+  void replaceTaskLocally(TaskEntity updatedTask) {
     final updatedTasks = state.tasks.map((t) => t.id == updatedTask.id ? updatedTask : t).toList();
     state = state.copyWith(tasks: updatedTasks);
   }
 
-  Future<TaskEntity?> createTask(String title, String description, TaskStatus status, TaskPriority priority) async {
-    final result = await _service.createTask(projectId, title, description, status, priority);
+  Future<TaskEntity?> createTask(String title, String description, TaskStatus status, TaskPriority priority, {String? assigneeId}) async {
+    final result = await _service.createTask(projectId, title, description, status, priority, assigneeId: assigneeId);
     return result.fold(
       (error) {
         state = state.copyWith(error: error);

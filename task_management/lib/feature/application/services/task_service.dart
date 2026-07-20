@@ -26,13 +26,18 @@ class TaskService implements ITaskService {
   }
 
   @override
+  Future<Either<String, TaskEntity>> updateTaskDeadline(String projectId, String taskId, DateTime deadline) async {
+    return await _repository.updateTaskDeadline(projectId, taskId, deadline);
+  }
+
+  @override
   Future<Either<String, TaskEntity>> updateTask(String projectId, String taskId, String title, String description, TaskPriority priority) async {
     return await _repository.updateTask(projectId, taskId, title, description, priority);
   }
 
   @override
-  Future<Either<String, TaskEntity>> createTask(String projectId, String title, String description, TaskStatus status, TaskPriority priority) async {
-    return await _repository.createTask(projectId, title, description, status, priority);
+  Future<Either<String, TaskEntity>> createTask(String projectId, String title, String description, TaskStatus status, TaskPriority priority, {String? assigneeId}) async {
+    return await _repository.createTask(projectId, title, description, status, priority, assigneeId: assigneeId);
   }
 
   @override
@@ -48,5 +53,15 @@ class TaskService implements ITaskService {
   @override
   Future<Either<String, bool>> setTaskDependency(String taskId, String predecessorTaskId, String dependencyType) async {
     return await _repository.setTaskDependency(taskId, predecessorTaskId, dependencyType);
+  }
+
+  @override
+  Future<Either<String, bool>> addTaskRelation(String taskId, String otherTaskId, String kind) async {
+    return await _repository.addTaskRelation(taskId, otherTaskId, kind);
+  }
+
+  @override
+  Future<Either<String, bool>> removeTaskRelation(String taskId, String dependencyId) async {
+    return await _repository.removeTaskRelation(taskId, dependencyId);
   }
 }

@@ -17,7 +17,7 @@ namespace TaskApi.DTOs
         public string? AssigneeName { get; set; }
         public string? ReporterName { get; set; }
         public DateTime CreatedAt { get; set; }
-        public List<TaskDependencyDto> Dependencies { get; set; } = new();
+        public List<TaskRelationDto> Relations { get; set; } = new();
     }
 
     public class TaskCreateDto

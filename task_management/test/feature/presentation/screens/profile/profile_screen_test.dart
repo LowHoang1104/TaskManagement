@@ -21,6 +21,8 @@ class MockAuthNotifier extends StateNotifier<AuthState> implements AuthNotifier 
   Future<void> checkAuthStatus() async {}
   @override
   Future<bool> changePassword(String currentPassword, String newPassword) async => true;
+  @override
+  Future<bool> uploadAvatar({required String fileName, required List<int> fileBytes}) async => true;
 }
 
 class MockDashboardNotifier extends StateNotifier<AsyncValue<DashboardEntity>> implements DashboardNotifier {
@@ -39,7 +41,7 @@ class MockThemeNotifier extends StateNotifier<ThemeMode> implements ThemeModeNot
 
 void main() {
   final tUser = UserEntity(id: 'u1', email: 'test@test.com', fullName: 'Test User', passwordHash: 'hash', createdAt: DateTime.now(), updatedAt: DateTime.now());
-  final tStats = DashboardEntity(tasksToDo: 0, tasksInProgress: 0, tasksReview: 0, totalTasksDone: 15, totalTasksOngoing: 5);
+  final tStats = DashboardEntity(tasksToDo: 0, tasksInProgress: 0, tasksReview: 0, totalTasksDone: 15, tasksDoneThisWeek: 3, totalTasksOngoing: 5);
 
   setUp(() {
     Animate.restartOnHotReload = false;

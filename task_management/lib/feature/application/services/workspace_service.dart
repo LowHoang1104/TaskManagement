@@ -33,6 +33,16 @@ class WorkspaceService implements IWorkspaceService {
   }
 
   @override
+  Future<Either<String, bool>> acceptWorkspaceInvite(String workspaceId) async {
+    return await _repository.acceptWorkspaceInvite(workspaceId);
+  }
+
+  @override
+  Future<Either<String, bool>> declineWorkspaceInvite(String workspaceId) async {
+    return await _repository.declineWorkspaceInvite(workspaceId);
+  }
+
+  @override
   Future<Either<String, UserEntity>> updateWorkspaceMemberRole(String workspaceId, String userId, String newRole) async {
     return await _repository.updateWorkspaceMemberRole(workspaceId, userId, newRole);
   }

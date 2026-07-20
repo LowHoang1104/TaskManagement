@@ -23,6 +23,8 @@ class ProjectRepositoryImp implements IProjectRepository {
         description: json['description'],
         ownerId: json['ownerId'] ?? 'unknown',
         progress: json['progress'] ?? 0,
+        taskCount: json['taskCount'] ?? 0,
+        doneTaskCount: json['doneTaskCount'] ?? 0,
         createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
         updatedAt: DateTime.tryParse(json['updatedAt']?.toString() ?? '') ?? DateTime.now(),
       )).toList();
@@ -53,6 +55,8 @@ class ProjectRepositoryImp implements IProjectRepository {
         description: json['description'],
         ownerId: json['ownerId'] ?? 'unknown',
         progress: json['progress'] ?? 0,
+        taskCount: json['taskCount'] ?? 0,
+        doneTaskCount: json['doneTaskCount'] ?? 0,
         createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
         updatedAt: DateTime.tryParse(json['updatedAt']?.toString() ?? '') ?? DateTime.now(),
       );

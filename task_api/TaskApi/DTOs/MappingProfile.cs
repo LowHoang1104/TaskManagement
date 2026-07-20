@@ -22,7 +22,9 @@ namespace TaskApi.DTOs
             // Task mappings
             CreateMap<TaskItem, TaskDto>()
                 .ForMember(dest => dest.AssigneeName, opt => opt.MapFrom(src => src.Assignee != null ? src.Assignee.FullName : null))
-                .ForMember(dest => dest.ReporterName, opt => opt.MapFrom(src => src.Reporter != null ? src.Reporter.FullName : null));
+                .ForMember(dest => dest.ReporterName, opt => opt.MapFrom(src => src.Reporter != null ? src.Reporter.FullName : null))
+                // Relations are computed in TaskService (both directions + statuses).
+                .ForMember(dest => dest.Relations, opt => opt.Ignore());
             CreateMap<TaskItem, TaskUpdateDto>().ReverseMap();
             
             CreateMap<TaskDependency, TaskDependencyDto>()

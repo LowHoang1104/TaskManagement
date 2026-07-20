@@ -9,6 +9,7 @@ namespace TaskApi.Services
         Task<TaskDto> UpdateTaskAsync(string id, TaskUpdateDto request, string actorId);
         Task DeleteTaskAsync(string id, string actorId);
         Task<IEnumerable<TaskDependencyDto>> GetTaskDependenciesAsync(string taskId);
-        Task SetTaskDependencyAsync(string successorId, string predecessorId, string dependencyType);
+        Task SetTaskDependencyAsync(string successorId, string predecessorId, string dependencyType, string actorId);
+        Task RemoveTaskDependencyAsync(string dependencyId, string actorId);
     }
 }

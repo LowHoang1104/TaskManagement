@@ -6,4 +6,5 @@ abstract class IAuthService {
   Future<Either<String, UserEntity>> register(String fullName, String email, String password);
   Future<Either<String, void>> logout();
   Future<Either<String, void>> changePassword(String currentPassword, String newPassword);
+  Future<Either<String, UserEntity>> uploadAvatar({required String fileName, required List<int> fileBytes});
 }

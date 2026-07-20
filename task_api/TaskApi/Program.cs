@@ -102,6 +102,20 @@ namespace TaskApi
 
             var app = builder.Build();
 
+            // Apply any pending migrations and seed demo data (idempotent).
+            using (var scope = app.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                db.Database.Migrate();
+
+                var webRoot = app.Environment.WebRootPath;
+                if (string.IsNullOrWhiteSpace(webRoot))
+                {
+                    webRoot = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+                }
+                DbSeeder.Seed(db, webRoot);
+            }
+
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {

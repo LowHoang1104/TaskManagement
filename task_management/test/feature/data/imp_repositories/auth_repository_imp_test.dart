@@ -119,6 +119,7 @@ void main() {
     const tEmail = 'new@example.com';
     const tPassword = 'password123';
     final tResponseData = {
+      'token': 'mock_token',
       'user': {
         'id': '2',
         'fullName': tFullName,
@@ -137,6 +138,7 @@ void main() {
             data: tResponseData,
             statusCode: 200,
           ));
+      when(() => mockSecureStorage.saveAccessToken('mock_token')).thenAnswer((_) async => {});
 
       // Act
       final result = await repository.register(tFullName, tEmail, tPassword);

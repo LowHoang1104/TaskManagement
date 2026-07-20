@@ -61,9 +61,18 @@ dependencies:
   # JSON
   json_annotation: ^4.9.0
   signalr_netcore: ^1.4.4
-  sentry_flutter: ^8.14.2
   fl_chart: ^1.2.0
   timeago: ^3.7.1
+  image_picker: ^1.2.3
+  # Opens attachment URLs in the browser / system handler (download).
+  url_launcher: ^6.3.1
+
+# The macOS/iOS implementation of path_provider (v2.4.1+) pulls in `objective_c`,
+# whose native-assets build hook breaks on this machine (space in the home path
+# "C:\Users\MY PC"). It is never used on Android/Web, so we pin it to the last
+# method-channel version to keep `objective_c` out of the dependency graph.
+dependency_overrides:
+  path_provider_foundation: 2.4.0
 
 dev_dependencies:
   flutter_test:

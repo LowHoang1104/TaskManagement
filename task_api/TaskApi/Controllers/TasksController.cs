@@ -45,6 +45,10 @@ namespace TaskApi.Controllers
                 var task = await _taskService.UpdateTaskAsync(id, request, userId);
                 return Ok(task);
             }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(403, new { message = ex.Message });
+            }
             catch (Exception ex)
             {
                 return BadRequest(new { message = ex.Message });
@@ -87,8 +91,30 @@ namespace TaskApi.Controllers
         {
             try
             {
-                await _taskService.SetTaskDependencyAsync(id, request.PredecessorTaskId, request.DependencyType);
+                await _taskService.SetTaskDependencyAsync(id, request.PredecessorTaskId, request.DependencyType, GetUserId());
                 return Ok(new { message = "Dependency updated successfully." });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(403, new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpDelete("~/api/tasks/{id}/dependencies/{depId}")]
+        public async Task<IActionResult> RemoveTaskDependency(string id, string depId)
+        {
+            try
+            {
+                await _taskService.RemoveTaskDependencyAsync(depId, GetUserId());
+                return Ok(new { message = "Relationship removed." });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(403, new { message = ex.Message });
             }
             catch (Exception ex)
             {

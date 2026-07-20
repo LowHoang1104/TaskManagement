@@ -5,65 +5,65 @@ class AppStrings {
   static const String appName = 'TaskFlow';
 
   // ─── Auth ─────────────────────────────────────────────────────────────────
-  static const String login = 'Đăng nhập';
-  static const String register = 'Đăng ký';
-  static const String logout = 'Đăng xuất';
+  static const String login = 'Sign in';
+  static const String register = 'Sign up';
+  static const String logout = 'Sign out';
   static const String email = 'Email';
-  static const String password = 'Mật khẩu';
-  static const String fullName = 'Họ và tên';
-  static const String forgotPassword = 'Quên mật khẩu?';
+  static const String password = 'Password';
+  static const String fullName = 'Full name';
+  static const String forgotPassword = 'Forgot password?';
 
   // ─── Common ───────────────────────────────────────────────────────────────
-  static const String save = 'Lưu';
-  static const String cancel = 'Hủy';
-  static const String delete = 'Xóa';
-  static const String edit = 'Chỉnh sửa';
-  static const String confirm = 'Xác nhận';
-  static const String loading = 'Đang tải...';
-  static const String retry = 'Thử lại';
-  static const String noData = 'Không có dữ liệu';
-  static const String success = 'Thành công';
+  static const String save = 'Save';
+  static const String cancel = 'Cancel';
+  static const String delete = 'Delete';
+  static const String edit = 'Edit';
+  static const String confirm = 'Confirm';
+  static const String loading = 'Loading...';
+  static const String retry = 'Retry';
+  static const String noData = 'No data';
+  static const String success = 'Success';
 
   // ─── Error Messages ───────────────────────────────────────────────────────
-  static const String errorNetwork = 'Không có kết nối mạng. Vui lòng kiểm tra lại.';
-  static const String errorServer = 'Lỗi máy chủ. Vui lòng thử lại sau.';
-  static const String errorTimeout = 'Yêu cầu quá thời gian. Vui lòng thử lại.';
-  static const String errorUnauthorized = 'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.';
-  static const String errorUnexpected = 'Đã xảy ra lỗi. Vui lòng thử lại.';
+  static const String errorNetwork = 'No internet connection. Please try again.';
+  static const String errorServer = 'Server error. Please try again later.';
+  static const String errorTimeout = 'Request timed out. Please try again.';
+  static const String errorUnauthorized = 'Your session has expired. Please sign in again.';
+  static const String errorUnexpected = 'Something went wrong. Please try again.';
 
   // ─── Validation Messages ─────────────────────────────────────────────────
-  static const String validationRequired = 'Trường này không được để trống.';
-  static const String validationEmail = 'Email không hợp lệ.';
-  static const String validationPasswordMin = 'Mật khẩu phải có ít nhất 6 ký tự.';
+  static const String validationRequired = 'This field is required.';
+  static const String validationEmail = 'Invalid email address.';
+  static const String validationPasswordMin = 'Password must be at least 6 characters.';
 
   // ─── Workspace & Project ─────────────────────────────────────────────────
   static const String workspace = 'Workspace';
-  static const String project = 'Dự án';
-  static const String createWorkspace = 'Tạo Workspace';
-  static const String createProject = 'Tạo Dự án';
+  static const String project = 'Project';
+  static const String createWorkspace = 'Create workspace';
+  static const String createProject = 'Create project';
 
   // ─── Task ─────────────────────────────────────────────────────────────────
   static const String task = 'Task';
-  static const String createTask = 'Tạo Task';
-  static const String assignee = 'Người thực hiện';
-  static const String reporter = 'Người tạo';
-  static const String reviewer = 'Người review';
-  static const String deadline = 'Hạn hoàn thành';
-  static const String status = 'Trạng thái';
-  static const String priority = 'Độ ưu tiên';
-  static const String comment = 'Bình luận';
+  static const String createTask = 'Create task';
+  static const String assignee = 'Assignee';
+  static const String reporter = 'Reporter';
+  static const String reviewer = 'Reviewer';
+  static const String deadline = 'Deadline';
+  static const String status = 'Status';
+  static const String priority = 'Priority';
+  static const String comment = 'Comment';
   static const String checklist = 'Checklist';
-  static const String attachment = 'Đính kèm';
+  static const String attachment = 'Attachment';
 
   // ─── Task Statuses ───────────────────────────────────────────────────────
-  static const String statusTodo = 'Cần làm';
-  static const String statusDoing = 'Đang làm';
-  static const String statusReview = 'Đang review';
-  static const String statusDone = 'Hoàn thành';
+  static const String statusTodo = 'To Do';
+  static const String statusDoing = 'In Progress';
+  static const String statusReview = 'Review';
+  static const String statusDone = 'Done';
 
   // ─── Task Priorities ─────────────────────────────────────────────────────
-  static const String priorityLow = 'Thấp';
-  static const String priorityMedium = 'Trung bình';
-  static const String priorityHigh = 'Cao';
-  static const String priorityCritical = 'Khẩn cấp';
+  static const String priorityLow = 'Low';
+  static const String priorityMedium = 'Normal';
+  static const String priorityHigh = 'High';
+  static const String priorityCritical = 'Critical';
 }

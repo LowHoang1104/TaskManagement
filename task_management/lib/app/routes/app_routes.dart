@@ -7,6 +7,10 @@ class AppRoutes {
   static const String splash = '/';
   static const String login = '/login';
   static const String register = '/register';
+  static const String verifyEmail = '/verify-email';
+
+  // ─── Home shell (redesigned TaskFlow) ─────────────────────────────────────
+  static const String home = '/home';
 
   // ─── Workspace ───────────────────────────────────────────────────────────
   static const String workspaceList = '/workspaces';

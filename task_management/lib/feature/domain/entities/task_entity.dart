@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'enums.dart';
-import 'task_dependency_entity.dart';
+import 'task_relation_entity.dart';
 
 class TaskEntity extends Equatable {
   final String id;
@@ -18,7 +18,7 @@ class TaskEntity extends Equatable {
   final String? reviewerId;
   final DateTime createdAt;
   final DateTime updatedAt;
-  final List<TaskDependencyEntity> dependencies;
+  final List<TaskRelationEntity> relations;
 
   const TaskEntity({
     required this.id,
@@ -36,7 +36,7 @@ class TaskEntity extends Equatable {
     this.reviewerId,
     required this.createdAt,
     required this.updatedAt,
-    this.dependencies = const [],
+    this.relations = const [],
   });
 
   TaskEntity copyWith({
@@ -55,7 +55,7 @@ class TaskEntity extends Equatable {
     String? reviewerId,
     DateTime? createdAt,
     DateTime? updatedAt,
-    List<TaskDependencyEntity>? dependencies,
+    List<TaskRelationEntity>? relations,
   }) {
     return TaskEntity(
       id: id ?? this.id,
@@ -73,7 +73,7 @@ class TaskEntity extends Equatable {
       reviewerId: reviewerId ?? this.reviewerId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
-      dependencies: dependencies ?? this.dependencies,
+      relations: relations ?? this.relations,
     );
   }
 
@@ -84,23 +84,39 @@ class TaskEntity extends Equatable {
       title: json['title'] ?? '',
       description: json['description'],
       status: TaskStatus.values.firstWhere(
-        (e) => e.toString().split('.').last.toLowerCase() == (json['status'] as String?)?.toLowerCase(),
+        (e) =>
+            e.toString().split('.').last.toLowerCase() ==
+            (json['status'] as String?)?.toLowerCase(),
         orElse: () => TaskStatus.todo,
       ),
       priority: TaskPriority.values.firstWhere(
-        (e) => e.name.toLowerCase() == (json['priority'] as String?)?.toLowerCase(),
+        (e) =>
+            e.name.toLowerCase() ==
+            (json['priority'] as String?)?.toLowerCase(),
         orElse: () => TaskPriority.medium,
       ),
       order: json['order'] ?? 0,
-      deadline: json['deadline'] != null ? DateTime.parse(json['deadline']) : null,
+      deadline: json['deadline'] != null
+          ? DateTime.parse(json['deadline'])
+          : null,
       assigneeId: json['assigneeId'],
       reporterId: json['reporterId'] ?? '',
       assigneeName: json['assigneeName'],
       reporterName: json['reporterName'],
       reviewerId: json['reviewerId'],
-      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : DateTime.now(),
-      updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : DateTime.now(),
-      dependencies: json['dependencies'] != null ? (json['dependencies'] as List).map((e) => TaskDependencyEntity.fromJson(e)).toList() : const [],
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'])
+          : DateTime.now(),
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt'])
+          : DateTime.now(),
+      relations: json['relations'] != null
+          ? (json['relations'] as List)
+                .map(
+                  (e) => TaskRelationEntity.fromJson(e as Map<String, dynamic>),
+                )
+                .toList()
+          : const [],
     );
   }
 
@@ -121,10 +137,26 @@ class TaskEntity extends Equatable {
       'reviewerId': reviewerId,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
-      'dependencies': dependencies.map((e) => e.toJson()).toList(),
     };
   }
 
   @override
-  List<Object?> get props => [id, projectId, title, description, status, priority, order, deadline, assigneeId, reporterId, assigneeName, reporterName, reviewerId, createdAt, updatedAt, dependencies];
+  List<Object?> get props => [
+    id,
+    projectId,
+    title,
+    description,
+    status,
+    priority,
+    order,
+    deadline,
+    assigneeId,
+    reporterId,
+    assigneeName,
+    reporterName,
+    reviewerId,
+    createdAt,
+    updatedAt,
+    relations,
+  ];
 }

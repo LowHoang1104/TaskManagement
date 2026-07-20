@@ -9,6 +9,8 @@ abstract class IWorkspaceService {
   
   Future<Either<String, List<UserEntity>>> getWorkspaceMembers(String workspaceId);
   Future<Either<String, UserEntity>> inviteWorkspaceMember(String workspaceId, String email);
+  Future<Either<String, bool>> acceptWorkspaceInvite(String workspaceId);
+  Future<Either<String, bool>> declineWorkspaceInvite(String workspaceId);
   Future<Either<String, UserEntity>> updateWorkspaceMemberRole(String workspaceId, String userId, String newRole);
   Future<Either<String, bool>> removeWorkspaceMember(String workspaceId, String userId);
 }

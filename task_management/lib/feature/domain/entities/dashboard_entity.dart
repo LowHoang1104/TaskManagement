@@ -1,5 +1,6 @@
 class DashboardEntity {
-  final int totalTasksDone;
+  final int totalTasksDone; // all-time completed
+  final int tasksDoneThisWeek; // completed since Monday
   final int totalTasksOngoing;
   final int tasksToDo;
   final int tasksInProgress;
@@ -7,6 +8,7 @@ class DashboardEntity {
 
   DashboardEntity({
     required this.totalTasksDone,
+    required this.tasksDoneThisWeek,
     required this.totalTasksOngoing,
     required this.tasksToDo,
     required this.tasksInProgress,
@@ -16,6 +18,7 @@ class DashboardEntity {
   factory DashboardEntity.fromJson(Map<String, dynamic> json) {
     return DashboardEntity(
       totalTasksDone: json['totalTasksDone'] ?? 0,
+      tasksDoneThisWeek: json['tasksDoneThisWeek'] ?? 0,
       totalTasksOngoing: json['totalTasksOngoing'] ?? 0,
       tasksToDo: json['tasksToDo'] ?? 0,
       tasksInProgress: json['tasksInProgress'] ?? 0,
@@ -25,6 +28,7 @@ class DashboardEntity {
 
   DashboardEntity copyWith({
     int? totalTasksDone,
+    int? tasksDoneThisWeek,
     int? totalTasksOngoing,
     int? tasksToDo,
     int? tasksInProgress,
@@ -32,6 +36,7 @@ class DashboardEntity {
   }) {
     return DashboardEntity(
       totalTasksDone: totalTasksDone ?? this.totalTasksDone,
+      tasksDoneThisWeek: tasksDoneThisWeek ?? this.tasksDoneThisWeek,
       totalTasksOngoing: totalTasksOngoing ?? this.totalTasksOngoing,
       tasksToDo: tasksToDo ?? this.tasksToDo,
       tasksInProgress: tasksInProgress ?? this.tasksInProgress,

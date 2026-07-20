@@ -7,39 +7,28 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'feature/presentation/providers/theme_provider.dart';
 
-import 'package:sentry_flutter/sentry_flutter.dart';
-
 Future<void> main() async {
-  await SentryFlutter.init(
-    (options) {
-      // TODO: Replace with actual Sentry DSN when ready
-      options.dsn = 'https://example@sentry.io/add-your-dsn-here';
-      options.tracesSampleRate = 1.0;
-    },
-    appRunner: () async {
-      WidgetsFlutterBinding.ensureInitialized();
-      
-      // Remove the '#' from the URL in Flutter Web
-      usePathUrlStrategy();
+  WidgetsFlutterBinding.ensureInitialized();
 
-      // Initialize intl date formatting
-      await initializeDateFormatting('en_US', null);
+  // Remove the '#' from the URL in Flutter Web
+  usePathUrlStrategy();
 
-      // Initialize all dependencies (storage, network, etc.)
-      await di.init();
+  // Initialize intl date formatting
+  await initializeDateFormatting('en_US', null);
 
-      // Initialize SharedPreferences for theme
-      final prefs = await SharedPreferences.getInstance();
+  // Initialize all dependencies (storage, network, etc.)
+  await di.init();
 
-      runApp(
-        // ProviderScope is required by Riverpod
-        ProviderScope(
-          overrides: [
-            sharedPreferencesProvider.overrideWithValue(prefs),
-          ],
-          child: const App(),
-        ),
-      );
-    },
+  // Initialize SharedPreferences for theme
+  final prefs = await SharedPreferences.getInstance();
+
+  // ProviderScope is required by Riverpod
+  runApp(
+    ProviderScope(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+      ],
+      child: const App(),
+    ),
   );
 }

@@ -17,4 +17,15 @@ class AttachmentService implements IAttachmentService {
   Future<Either<String, AttachmentEntity>> uploadAttachment(String taskId, File file) async {
     return await _repository.uploadAttachment(taskId, file);
   }
+
+  @override
+  Future<Either<String, AttachmentEntity>> uploadAttachmentBytes(
+      String taskId, String fileName, List<int> bytes) async {
+    return await _repository.uploadAttachmentBytes(taskId, fileName, bytes);
+  }
+
+  @override
+  Future<Either<String, bool>> deleteAttachment(String taskId, String attachmentId) async {
+    return await _repository.deleteAttachment(taskId, attachmentId);
+  }
 }

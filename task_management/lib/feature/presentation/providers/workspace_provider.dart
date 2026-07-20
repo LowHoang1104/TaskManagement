@@ -49,11 +49,24 @@ class WorkspaceNotifier extends StateNotifier<WorkspaceState> {
     );
   }
 
-  Future<void> createWorkspace(String name, String description) async {
+  /// Creates a workspace and appends it to the list. Returns the created
+  /// workspace on success (so the UI can select it), or `null` on failure —
+  /// the error is stored in [state].
+  Future<WorkspaceEntity?> createWorkspace(String name, String description) async {
+    state = state.copyWith(isLoading: true, error: null);
     final result = await _service.createWorkspace(name, description);
-    result.fold(
-      (error) => state = state.copyWith(error: error),
-      (newWorkspace) => state = state.copyWith(workspaces: [...state.workspaces, newWorkspace]),
+    return result.fold(
+      (error) {
+        state = state.copyWith(isLoading: false, error: error);
+        return null;
+      },
+      (newWorkspace) {
+        state = state.copyWith(
+          isLoading: false,
+          workspaces: [...state.workspaces, newWorkspace],
+        );
+        return newWorkspace;
+      },
     );
   }
 

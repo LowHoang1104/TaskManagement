@@ -24,4 +24,9 @@ class AuthService implements IAuthService {
   Future<Either<String, void>> changePassword(String currentPassword, String newPassword) async {
     return await _repository.changePassword(currentPassword, newPassword);
   }
+
+  @override
+  Future<Either<String, UserEntity>> uploadAvatar({required String fileName, required List<int> fileBytes}) async {
+    return await _repository.uploadAvatar(fileName: fileName, fileBytes: fileBytes);
+  }
 }

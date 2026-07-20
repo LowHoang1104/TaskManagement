@@ -1,16 +1,16 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../app/routes/app_routes.dart';
-import '../../../../core/constants/app_colors.dart';
-import '../../../../core/constants/app_sizes.dart';
+import '../../../../app/theme/app_palette.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../providers/workspace_provider.dart';
 import '../../providers/project_provider.dart';
 import '../../providers/task_provider.dart';
 import '../../providers/notification_provider.dart';
+import '../../taskflow/widgets/tf_widgets.dart';
+
+/// Sign in — redesigned to match `TaskFlow.dc.html` (01 — Onboarding).
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -19,9 +19,8 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final _emailController = TextEditingController();
+  final _emailController = TextEditingController(text: 'an.nguyen@acme.co');
   final _passwordController = TextEditingController();
-  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -32,195 +31,218 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final p = context.palette;
     final authState = ref.watch(authNotifierProvider);
 
     ref.listen<AuthState>(authNotifierProvider, (previous, next) {
       if (next.error != null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(next.error!), backgroundColor: Colors.red),
+          SnackBar(content: Text(next.error!), backgroundColor: p.danger),
         );
       }
       if (next.user != null) {
-        // Clear all cached global providers before navigating into the app
-        // This ensures the new user gets fresh data instead of the previous user's or a 401 cache
         ref.invalidate(workspaceNotifierProvider);
         ref.invalidate(projectNotifierProvider);
         ref.invalidate(taskNotifierProvider);
         ref.invalidate(notificationProvider);
         ref.invalidate(dashboardProvider);
-
-        Navigator.pushReplacementNamed(context, AppRoutes.workspaceList);
+        Navigator.pushNamedAndRemoveUntil(context, AppRoutes.home, (r) => false);
       }
     });
 
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFFF1F5F9), Color(0xFFE2E8F0), Color(0xFFC4B5FD)],
-            stops: [0.0, 0.5, 1.0],
-          ),
-        ),
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(AppSizes.xl),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Logo & Title
-                const Icon(Icons.check_circle_outline_rounded, size: 60, color: AppColors.primary)
-                    .animate().scale(delay: 200.ms, duration: 400.ms, curve: Curves.easeOutBack),
-                const SizedBox(height: AppSizes.md),
-                Text(
-                  'TaskFlow',
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.primaryDark,
-                    letterSpacing: -1,
-                  ),
-                ).animate().fadeIn(delay: 300.ms).slideY(begin: -0.2),
-                const SizedBox(height: AppSizes.xxl),
+      backgroundColor: p.surface,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(26, 20, 26, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const TfLogoTile(),
+              const SizedBox(height: 26),
+              Text('Welcome back',
+                  style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.5,
+                      color: p.text)),
+              const SizedBox(height: 5),
+              Text('Sign in to keep your work flowing.',
+                  style: TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.w600, color: p.text3)),
+              const SizedBox(height: 26),
 
-                // Glass Card
-                Container(
-                  padding: const EdgeInsets.all(AppSizes.xl),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.8),
-                    borderRadius: BorderRadius.circular(AppSizes.radiusXl),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 1.5),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.15),
-                        blurRadius: 40,
-                        offset: const Offset(0, 20),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        'Welcome Back!',
-                        style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                        textAlign: TextAlign.center,
-                      ).animate().fadeIn(delay: 400.ms),
-                      const SizedBox(height: AppSizes.md),
-                      
-                      // Email Input
-                      _buildTextField(
-                        controller: _emailController,
-                        label: 'Email Address',
-                        icon: Icons.email_outlined,
-                        theme: theme,
-                      ).animate().fadeIn(delay: 500.ms).slideX(begin: -0.05),
-                      const SizedBox(height: AppSizes.md),
+              // Segmented tab
+              _AuthTabs(
+                index: 0,
+                onRegister: () =>
+                    Navigator.pushReplacementNamed(context, AppRoutes.register),
+              ),
+              const SizedBox(height: 22),
 
-                      // Password Input
-                      _buildTextField(
-                        controller: _passwordController,
-                        label: 'Password',
-                        icon: Icons.lock_outline_rounded,
-                        isPassword: true,
-                        theme: theme,
-                      ).animate().fadeIn(delay: 600.ms).slideX(begin: -0.05),
+              TfLabeledField(
+                label: 'Email',
+                icon: Icons.mail_outline_rounded,
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+              ),
+              const SizedBox(height: 14),
+              TfLabeledField(
+                label: 'Password',
+                icon: Icons.lock_outline_rounded,
+                controller: _passwordController,
+                obscure: true,
+                hint: '••••••••',
+              ),
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerRight,
+                child: Text('Forgot password?',
+                    style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        color: p.accent)),
+              ),
+              const SizedBox(height: 20),
 
-                      // Forgot Password
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed: () {},
-                          child: const Text('Forgot Password?', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600)),
+              TfPrimaryButton(
+                label: 'Sign in',
+                loading: authState.isLoading,
+                onTap: () => ref.read(authNotifierProvider.notifier).login(
+                      _emailController.text.trim(),
+                      _passwordController.text,
+                    ),
+              ),
+              const SizedBox(height: 20),
+
+              _OrDivider(),
+              const SizedBox(height: 20),
+              _GoogleButton(),
+
+              const SizedBox(height: 28),
+              Center(
+                child: GestureDetector(
+                  onTap: () =>
+                      Navigator.pushReplacementNamed(context, AppRoutes.register),
+                  child: Text.rich(
+                    TextSpan(
+                      text: 'New here?  ',
+                      style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                          color: p.text3),
+                      children: [
+                        TextSpan(
+                          text: 'Create an account',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w800, color: p.accent),
                         ),
-                      ).animate().fadeIn(delay: 700.ms),
-                      const SizedBox(height: AppSizes.md),
-
-                      // Login Button
-                      SizedBox(
-                        height: 56,
-                        child: ElevatedButton(
-                          onPressed: authState.isLoading
-                              ? null
-                              : () {
-                                  ref.read(authNotifierProvider.notifier).login(
-                                        _emailController.text.trim(),
-                                        _passwordController.text,
-                                      );
-                                },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(AppSizes.radiusLg),
-                            ),
-                            elevation: 5,
-                            shadowColor: AppColors.primary.withValues(alpha: 0.5),
-                          ),
-                          child: authState.isLoading
-                              ? const SizedBox(
-                                  height: 24,
-                                  width: 24,
-                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
-                                )
-                              : const Text(
-                                  'Log In',
-                                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                                ),
-                        ),
-                      ).animate().fadeIn(delay: 800.ms).scale(),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-                
-                const SizedBox(height: AppSizes.xl),
-                // Sign up prompt
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text("Don't have an account?", style: TextStyle(color: AppColors.grey600)),
-                    TextButton(
-                      onPressed: () => Navigator.pushReplacementNamed(context, AppRoutes.register),
-                      child: const Text('Sign Up', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryDark)),
-                    ),
-                  ],
-                ).animate().fadeIn(delay: 900.ms),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
+}
 
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    required ThemeData theme,
-    bool isPassword = false,
-  }) {
-    return TextFormField(
-      controller: controller,
-      obscureText: isPassword && _obscurePassword,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, color: AppColors.grey400),
-        suffixIcon: isPassword
-            ? IconButton(
-                icon: Icon(
-                  _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                  color: AppColors.grey400,
-                ),
-                onPressed: () {
-                  setState(() {
-                    _obscurePassword = !_obscurePassword;
-                  });
-                },
-              )
-            : null,
+/// The "Sign in / Register" segmented control.
+class _AuthTabs extends StatelessWidget {
+  final int index; // 0 = sign in, 1 = register
+  final VoidCallback? onRegister;
+  const _AuthTabs({required this.index, this.onRegister});
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    Widget tab(String label, bool active, VoidCallback? onTap) => Expanded(
+          child: GestureDetector(
+            onTap: onTap,
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 9),
+              decoration: BoxDecoration(
+                color: active ? p.surface : Colors.transparent,
+                borderRadius: BorderRadius.circular(9),
+                boxShadow: active
+                    ? [
+                        BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.08),
+                            blurRadius: 3,
+                            offset: const Offset(0, 1))
+                      ]
+                    : null,
+              ),
+              alignment: Alignment.center,
+              child: Text(label,
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: active ? p.text : p.text3)),
+            ),
+          ),
+        );
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: p.surface2,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          tab('Sign in', index == 0, null),
+          tab('Register', index == 1, onRegister),
+        ],
+      ),
+    );
+  }
+}
+
+class _OrDivider extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    return Row(
+      children: [
+        Expanded(child: Divider(color: p.border, height: 1)),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Text('or continue with',
+              style: TextStyle(
+                  fontSize: 11, fontWeight: FontWeight.w600, color: p.text3)),
+        ),
+        Expanded(child: Divider(color: p.border, height: 1)),
+      ],
+    );
+  }
+}
+
+class _GoogleButton extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      decoration: BoxDecoration(
+        color: p.surface,
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: p.border2, width: 1.5),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text('G',
+              style: TextStyle(
+                  fontSize: 15, fontWeight: FontWeight.w800, color: p.accent)),
+          const SizedBox(width: 9),
+          Text('Google',
+              style: TextStyle(
+                  fontSize: 13.5, fontWeight: FontWeight.w700, color: p.text)),
+        ],
       ),
     );
   }

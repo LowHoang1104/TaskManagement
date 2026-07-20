@@ -10,6 +10,8 @@ namespace TaskApi.Services
         
         Task<IEnumerable<WorkspaceMemberDto>> GetWorkspaceMembersAsync(string workspaceId, string actorId);
         Task<WorkspaceMemberDto> InviteWorkspaceMemberAsync(string workspaceId, string email, string actorId);
+        Task<WorkspaceMemberDto> AcceptWorkspaceInvitationAsync(string workspaceId, string userId);
+        Task<bool> DeclineWorkspaceInvitationAsync(string workspaceId, string userId);
         Task<WorkspaceMemberDto> UpdateWorkspaceMemberRoleAsync(string workspaceId, string userId, string newRole, string actorId);
         Task<bool> RemoveWorkspaceMemberAsync(string workspaceId, string userId, string actorId);
     }

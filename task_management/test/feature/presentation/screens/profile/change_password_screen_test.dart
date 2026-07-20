@@ -25,6 +25,7 @@ class MockAuthNotifier extends StateNotifier<AuthState> implements AuthNotifier 
 
   // Not used in this test but required to fulfill interface
   @override Future<bool> login(String e, String p) async => true;
+  @override Future<bool> uploadAvatar({required String fileName, required List<int> fileBytes}) async => true;
   @override Future<bool> register(String n, String e, String p) async => true;
   @override Future<void> logout() async {}
 }

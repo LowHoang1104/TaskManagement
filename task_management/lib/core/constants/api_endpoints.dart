@@ -1,3 +1,7 @@
+// Android emulator: the host machine is reachable at 10.0.2.2 (NOT localhost,
+// which points at the emulator itself). For Windows desktop / web / Chrome,
+// switch back to 'http://localhost:5058/api'.
+// const String kBaseUrl = 'http://10.0.2.2:5058/api';
 const String kBaseUrl = 'http://localhost:5058/api';
 
 /// Timeout durations (in seconds).
@@ -14,6 +18,19 @@ class AuthEndpoints {
   static const String refreshToken = '/auth/refresh';
   static const String me = '/auth/me';
   static const String changePassword = '/auth/change-password';
+  static const String uploadAvatar = '/auth/avatar';
+}
+
+class ApiUtils {
+  static String? getFullImageUrl(String? path) {
+    if (path == null || path.isEmpty) return null;
+    var url = path;
+    if (!url.startsWith('http')) {
+      final baseUrl = kBaseUrl.replaceAll('/api', '');
+      url = url.startsWith('/') ? '$baseUrl$url' : '$baseUrl/$url';
+    }
+    return url;
+  }
 }
 
 /// User endpoints
@@ -31,6 +48,8 @@ class WorkspaceEndpoints {
   static String delete(String id) => '/workspaces/$id';
   static String memberRole(String id, String userId) => '/workspaces/$id/members/$userId/role';
   static String member(String id, String userId) => '/workspaces/$id/members/$userId';
+  static String accept(String id) => '/workspaces/$id/accept';
+  static String decline(String id) => '/workspaces/$id/decline';
 }
 
 /// Project endpoints
@@ -56,6 +75,8 @@ class TaskEndpoints {
   static String comments(String taskId) => '/tasks/$taskId/comments';
   static String checklists(String taskId) => '/tasks/$taskId/checklists';
   static String attachments(String taskId) => '/tasks/$taskId/attachments';
+  static String attachmentById(String taskId, String attachmentId) =>
+      '/tasks/$taskId/attachments/$attachmentId';
   static String activityLogs(String taskId) => '/tasks/$taskId/activity-logs';
   static String reviewHistory(String taskId) => '/tasks/$taskId/reviews';
 }

@@ -108,6 +108,9 @@ class WorkspaceMembersNotifier extends StateNotifier<WorkspaceMembersState> {
   }
 }
 
-final workspaceMembersProvider = StateNotifierProvider.family<WorkspaceMembersNotifier, WorkspaceMembersState, String>(
+// autoDispose so re-opening the members screen always refetches — an accepted
+// invite then shows the member as joined instead of a stale "Pending".
+final workspaceMembersProvider = StateNotifierProvider.autoDispose
+    .family<WorkspaceMembersNotifier, WorkspaceMembersState, String>(
   (ref, workspaceId) => WorkspaceMembersNotifier(workspaceId),
 );

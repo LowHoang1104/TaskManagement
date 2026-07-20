@@ -87,6 +87,34 @@ namespace TaskApi.Controllers
             }
         }
 
+        [HttpPost("{id}/accept")]
+        public async Task<IActionResult> AcceptWorkspaceInvitation(string id)
+        {
+            try
+            {
+                var member = await _workspaceService.AcceptWorkspaceInvitationAsync(id, GetUserId());
+                return Ok(member);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPost("{id}/decline")]
+        public async Task<IActionResult> DeclineWorkspaceInvitation(string id)
+        {
+            try
+            {
+                await _workspaceService.DeclineWorkspaceInvitationAsync(id, GetUserId());
+                return Ok(new { message = "Invitation declined." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
         [HttpPut("{id}/members/{userId}/role")]
         public async Task<IActionResult> UpdateWorkspaceMemberRole(string id, string userId, [FromBody] UpdateRoleRequest request)
         {
