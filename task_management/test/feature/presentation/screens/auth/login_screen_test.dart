@@ -15,7 +15,7 @@ class MockAuthService extends Mock implements IAuthService {}
 class FakeUserEntity extends Fake implements UserEntity {}
 
 class MockAuthNotifier extends AuthNotifier with Mock {
-  MockAuthNotifier(IAuthService service) : super(service);
+  MockAuthNotifier(super.service);
 }
 
 class MockNavigatorObserver extends Mock implements NavigatorObserver {}

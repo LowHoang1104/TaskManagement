@@ -26,7 +26,6 @@ class MockSignalRService extends Mock implements SignalRService {}
 void main() {
   late MockAuthService mockAuthService;
   late MockNavigatorObserver mockNavigatorObserver;
-  late UserEntity tUser;
 
   setUpAll(() {
     registerFallbackValue(RouteFake());
@@ -35,7 +34,6 @@ void main() {
   setUp(() {
     mockAuthService = MockAuthService();
     mockNavigatorObserver = MockNavigatorObserver();
-    tUser = FakeUserEntity();
     // Ensure a mocked SignalRService is registered to avoid GetIt errors
     final mockSignalR = MockSignalRService();
     if (di.sl.isRegistered<SignalRService>()) {

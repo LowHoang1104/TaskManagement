@@ -1,5 +1,4 @@
 import 'package:dartz/dartz.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mocktail/mocktail.dart';
@@ -72,10 +71,6 @@ void main() {
     });
 
     test('overrides user when explicitly passed', () {
-      final newUser = testUser.copyWith
-          is Function // no-op guard in case UserEntity lacks copyWith; harmless
-          ? testUser
-          : testUser;
       final original = AuthState(user: testUser);
       final otherUser = UserEntity(
         id: '2',

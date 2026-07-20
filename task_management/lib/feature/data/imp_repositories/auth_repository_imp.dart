@@ -289,8 +289,6 @@ class AuthRepositoryImp implements IAuthRepository {
         data: formData,
       );
 
-      print('Upload Avatar Response: ${response.data}');
-
       final userJson = response.data['user'] ?? response.data;
       if (userJson != null) {
         await _secureStorage.saveUserJson(json.encode(userJson));

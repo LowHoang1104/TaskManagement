@@ -13,7 +13,6 @@ class MockDashboardService extends Mock implements IDashboardService {}
 void main() {
   late MockDashboardService mockDashboardService;
   late DashboardEntity tDashboardEntity;
-  late Exception tException;
 
   setUp(() {
     mockDashboardService = MockDashboardService();
@@ -27,8 +26,6 @@ void main() {
       tasksInProgress: 2,
       tasksReview: 1,
     );
-    
-    tException = Exception('Failed to fetch dashboard data');
   });
 
   ProviderContainer makeProviderContainer(IDashboardService service) {

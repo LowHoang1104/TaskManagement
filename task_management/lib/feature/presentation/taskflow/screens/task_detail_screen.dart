@@ -1673,12 +1673,14 @@ class _MetaRow extends StatelessWidget {
                 children: [
                   Icon(icon, size: 17, color: p.text3),
                   const SizedBox(width: 8),
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: p.text3,
+                  Expanded(
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: p.text2,
+                      ),
                     ),
                   ),
                 ],

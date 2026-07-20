@@ -248,7 +248,7 @@ class _WorkspaceMembersScreenState
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Text('Delete workspace', style: TextStyle(color: p.danger, fontWeight: FontWeight.w700, fontSize: 14)),
-                                          Text('This action cannot be undone.', style: TextStyle(color: p.danger.withOpacity(0.8), fontSize: 11.5)),
+                                          Text('This action cannot be undone.', style: TextStyle(color: p.danger.withValues(alpha: 0.8), fontSize: 11.5)),
                                         ],
                                       ),
                                     ],
