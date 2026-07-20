@@ -1,6 +1,8 @@
+import 'package:dartz/dartz.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:task_management/feature/application/i_services/i_dashboard_service.dart';
 import 'package:task_management/feature/presentation/screens/profile/profile_screen.dart';
 import 'package:task_management/feature/presentation/providers/auth_provider.dart';
 import 'package:task_management/feature/presentation/providers/dashboard_provider.dart';
@@ -17,7 +19,6 @@ class MockAuthNotifier extends StateNotifier<AuthState> implements AuthNotifier 
   Future<bool> register(String name, String email, String password) async => true;
   @override
   Future<void> logout() async {}
-  @override
   Future<void> checkAuthStatus() async {}
   @override
   Future<bool> changePassword(String currentPassword, String newPassword) async => true;
@@ -25,8 +26,25 @@ class MockAuthNotifier extends StateNotifier<AuthState> implements AuthNotifier 
   Future<bool> uploadAvatar({required String fileName, required List<int> fileBytes}) async => true;
 }
 
-class MockDashboardNotifier extends StateNotifier<AsyncValue<DashboardEntity>> implements DashboardNotifier {
-  MockDashboardNotifier(super.state);
+class MockDashboardService implements IDashboardService {
+  @override
+  Future<Either<String, DashboardEntity>> getDashboardStats() async {
+    return Right(DashboardEntity(
+      tasksToDo: 0,
+      tasksInProgress: 0,
+      tasksReview: 0,
+      totalTasksDone: 0,
+      tasksDoneThisWeek: 0,
+      totalTasksOngoing: 0,
+    ));
+  }
+}
+
+class MockDashboardNotifier extends DashboardNotifier {
+  MockDashboardNotifier(AsyncValue<DashboardEntity> state) : super(MockDashboardService()) {
+    this.state = state;
+  }
+
   @override
   Future<void> fetchDashboardStats() async {}
 }

@@ -5,7 +5,6 @@ import 'package:task_management/core/di/injection_container.dart';
 import 'package:task_management/feature/application/i_services/i_notification_service.dart';
 import 'package:task_management/feature/application/i_services/i_project_service.dart';
 import 'package:task_management/feature/domain/entities/notification_entity.dart';
-import 'package:task_management/feature/domain/entities/user_entity.dart';
 import 'package:task_management/feature/presentation/providers/notification_provider.dart';
 
 class MockNotificationService extends Mock implements INotificationService {}
@@ -79,16 +78,6 @@ void main() {
   });
 
   group('NotificationNotifier - acceptProjectInvite', () {
-    final tUser = UserEntity(
-      id: 'u1',
-      fullName: 'User',
-      email: 'a@a.com',
-      passwordHash: '',
-      role: 'Member',
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-    );
-
     test('should accept invite and mark as read on success', () async {
       when(() => mockProjectService.acceptProjectInvitation('p1'))
           .thenAnswer((_) async => const Right(true));

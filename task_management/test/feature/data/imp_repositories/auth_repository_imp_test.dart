@@ -1,10 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:dio/dio.dart';
-import 'package:dartz/dartz.dart';
 import 'package:task_management/core/constants/api_endpoints.dart';
 import 'package:task_management/core/storage/secure_storage.dart';
-import 'package:task_management/feature/domain/entities/user_entity.dart';
 import 'package:task_management/feature/data/imp_repositories/auth_repository_imp.dart';
 
 // Mocks

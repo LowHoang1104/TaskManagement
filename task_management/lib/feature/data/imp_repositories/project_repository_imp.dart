@@ -1,7 +1,6 @@
 import 'package:dartz/dartz.dart';
 import 'package:dio/dio.dart';
 import '../../../core/constants/api_endpoints.dart';
-import '../../domain/entities/project_entity.dart';
 import '../../domain/entities/entities.dart';
 import '../../domain/i_repositories/i_project_repository.dart';
 
@@ -190,7 +189,7 @@ class ProjectRepositoryImp implements IProjectRepository {
   @override
   Future<Either<String, bool>> leaveProject(String projectId) async {
     try {
-      await _dio.delete(ProjectEndpoints.byId(projectId) + '/members/leave');
+      await _dio.delete('${ProjectEndpoints.byId(projectId)}/members/leave');
       return const Right(true);
     } on DioException catch (e) {
       return Left(e.response?.data?['message'] ?? e.message ?? 'Failed to leave project');

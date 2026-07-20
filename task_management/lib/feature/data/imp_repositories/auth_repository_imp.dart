@@ -1,5 +1,6 @@
 import 'package:dartz/dartz.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import '../../../core/constants/api_endpoints.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../domain/entities/user_entity.dart';
@@ -130,7 +131,9 @@ class AuthRepositoryImp implements IAuthRepository {
         data: formData,
       );
 
-      print('Upload Avatar Response: ${response.data}');
+      if (kDebugMode) {
+        debugPrint('Upload Avatar Response: ${response.data}');
+      }
 
       final userJson = response.data['user'] ?? response.data;
       
