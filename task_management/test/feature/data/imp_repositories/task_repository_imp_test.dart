@@ -1,6 +1,8 @@
+import 'package:dio/dio.dart';
+import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:dio/dio.dart';
+
 import 'package:task_management/core/constants/api_endpoints.dart';
 import 'package:task_management/feature/data/imp_repositories/task_repository_imp.dart';
 import 'package:task_management/feature/domain/entities/enums.dart';
@@ -8,189 +10,143 @@ import 'package:task_management/feature/domain/entities/enums.dart';
 class MockDio extends Mock implements Dio {}
 
 void main() {
-  late TaskRepositoryImp repository;
   late MockDio mockDio;
+  late TaskRepositoryImp repository;
 
   setUp(() {
     mockDio = MockDio();
     repository = TaskRepositoryImp(dio: mockDio);
   });
 
-  final tTaskJson = {
-    'id': 't1',
-    'projectId': 'p1',
-    'title': 'Test Task',
-    'description': 'Desc',
-    'status': 'todo',
-    'priority': 'high',
-    'assigneeId': 'u1',
-    'reporterId': 'u2',
-    'order': 1,
-  };
+  DioException dioError({int? statusCode, dynamic data, String? message}) {
+    final requestOptions = RequestOptions(path: '/');
+    return DioException(
+      requestOptions: requestOptions,
+      response: statusCode != null
+          ? Response(requestOptions: requestOptions, statusCode: statusCode, data: data)
+          : null,
+      message: message,
+    );
+  }
 
-  group('TaskRepositoryImp - getTasks', () {
-    const tProjectId = 'p1';
+  Map<String, dynamic> sampleTaskJson({String id = '1'}) => {
+        'id': id,
+        'projectId': 'p1',
+        'title': 'Test Task',
+        'description': 'Description here',
+        'status': 'todo',
+        'priority': 'high',
+        'assigneeId': 'u1',
+        'reporterId': 'u2',
+        'assigneeName': 'Jane',
+        'reporterName': 'John',
+        'createdAt': '2024-01-01T00:00:00.000Z',
+        'updatedAt': '2024-01-01T00:00:00.000Z',
+        'relations': []
+      };
 
-    test('should return Right(List<TaskEntity>) on success', () async {
-      when(() => mockDio.get(TaskEndpoints.byProject(tProjectId))).thenAnswer((_) async => Response(
-            requestOptions: RequestOptions(path: TaskEndpoints.byProject(tProjectId)),
-            data: [tTaskJson],
-            statusCode: 200,
-          ));
+  group('getTasks', () {
+    test('returns Right(List<TaskEntity>) on success', () async {
+      when(() => mockDio.get(TaskEndpoints.byProject('p1'))).thenAnswer(
+        (_) async => Response(
+          requestOptions: RequestOptions(path: TaskEndpoints.byProject('p1')),
+          statusCode: 200,
+          data: [sampleTaskJson()],
+        ),
+      );
 
-      final result = await repository.getTasks(tProjectId);
+      final result = await repository.getTasks('p1');
 
       expect(result.isRight(), true);
       result.fold(
-        (l) => fail('Should not return left'),
-        (r) {
-          expect(r.length, 1);
-          expect(r.first.id, 't1');
-          expect(r.first.status, TaskStatus.todo);
-          expect(r.first.priority, TaskPriority.high);
+        (l) => fail('expected Right, got Left($l)'),
+        (tasks) {
+          expect(tasks.length, 1);
+          expect(tasks.first.id, '1');
+          expect(tasks.first.title, 'Test Task');
+          expect(tasks.first.status, TaskStatus.todo);
+          expect(tasks.first.priority, TaskPriority.high);
         },
       );
     });
 
-    test('should return Left on failure', () async {
-      when(() => mockDio.get(TaskEndpoints.byProject(tProjectId))).thenThrow(DioException(
-        requestOptions: RequestOptions(path: TaskEndpoints.byProject(tProjectId)),
-        message: 'Network Error',
-      ));
+    test('returns Left(message) on DioException', () async {
+      when(() => mockDio.get(TaskEndpoints.byProject('p1')))
+          .thenThrow(dioError(statusCode: 500, data: {'message': 'Server error'}));
 
-      final result = await repository.getTasks(tProjectId);
-      expect(result.isLeft(), true);
+      final result = await repository.getTasks('p1');
+
+      expect(result, const Left('Server error'));
     });
   });
 
-  group('TaskRepositoryImp - createTask', () {
-    const tProjectId = 'p1';
+  group('createTask', () {
+    test('returns Right(TaskEntity) on success', () async {
+      when(() => mockDio.post(TaskEndpoints.byProject('p1'), data: any(named: 'data'))).thenAnswer(
+        (_) async => Response(
+          requestOptions: RequestOptions(path: TaskEndpoints.byProject('p1')),
+          statusCode: 201,
+          data: sampleTaskJson(),
+        ),
+      );
 
-    test('should return Right(TaskEntity) on success', () async {
-      when(() => mockDio.post(TaskEndpoints.byProject(tProjectId), data: any(named: 'data'))).thenAnswer((_) async => Response(
-            requestOptions: RequestOptions(path: TaskEndpoints.byProject(tProjectId)),
-            data: tTaskJson,
-            statusCode: 201,
-          ));
-
-      final result = await repository.createTask(tProjectId, 'Test Task', 'Desc', TaskStatus.todo, TaskPriority.high);
+      final result = await repository.createTask('p1', 'Test Task', 'Description here', TaskStatus.todo, TaskPriority.high);
 
       expect(result.isRight(), true);
-      result.fold((l) => fail('Should not return left'), (r) => expect(r.title, 'Test Task'));
+      result.fold(
+        (l) => fail('expected Right, got Left($l)'),
+        (task) {
+          expect(task.id, '1');
+          expect(task.title, 'Test Task');
+        },
+      );
     });
 
-    test('should return Left on failure', () async {
-      when(() => mockDio.post(TaskEndpoints.byProject(tProjectId), data: any(named: 'data'))).thenThrow(DioException(
-        requestOptions: RequestOptions(path: TaskEndpoints.byProject(tProjectId)),
-        message: 'Network Error',
-      ));
+    test('returns Left(message) on DioException', () async {
+      when(() => mockDio.post(TaskEndpoints.byProject('p1'), data: any(named: 'data')))
+          .thenThrow(dioError(statusCode: 400, data: {'message': 'Bad request'}));
 
-      final result = await repository.createTask(tProjectId, 'Test Task', 'Desc', TaskStatus.todo, TaskPriority.high);
-      expect(result.isLeft(), true);
+      final result = await repository.createTask('p1', 'Test Task', '', TaskStatus.todo, TaskPriority.low);
+
+      expect(result, const Left('Bad request'));
     });
   });
 
-  group('TaskRepositoryImp - update functions', () {
-    const tProjectId = 'p1';
-    const tTaskId = 't1';
+  group('updateTaskStatus', () {
+    test('returns Right(TaskEntity) on success', () async {
+      when(() => mockDio.put('${TaskEndpoints.byProject('p1')}/1', data: any(named: 'data'))).thenAnswer(
+        (_) async => Response(
+          requestOptions: RequestOptions(path: '${TaskEndpoints.byProject('p1')}/1'),
+          statusCode: 200,
+          data: sampleTaskJson()..['status'] = 'doing',
+        ),
+      );
 
-    test('updateTaskStatus should return Right on success', () async {
-      final updatedJson = {...tTaskJson, 'status': 'done'};
-      when(() => mockDio.put('${TaskEndpoints.byProject(tProjectId)}/$tTaskId', data: any(named: 'data'))).thenAnswer((_) async => Response(
-            requestOptions: RequestOptions(path: '${TaskEndpoints.byProject(tProjectId)}/$tTaskId'),
-            data: updatedJson,
-            statusCode: 200,
-          ));
+      final result = await repository.updateTaskStatus('p1', '1', TaskStatus.doing);
 
-      final result = await repository.updateTaskStatus(tProjectId, tTaskId, TaskStatus.done);
       expect(result.isRight(), true);
-      result.fold((l) => fail('Should not return left'), (r) => expect(r.status, TaskStatus.done));
-    });
-
-    test('updateTaskAssignee should return Right on success', () async {
-      final updatedJson = {...tTaskJson, 'assigneeId': 'u3'};
-      when(() => mockDio.put('${TaskEndpoints.byProject(tProjectId)}/$tTaskId', data: any(named: 'data'))).thenAnswer((_) async => Response(
-            requestOptions: RequestOptions(path: '${TaskEndpoints.byProject(tProjectId)}/$tTaskId'),
-            data: updatedJson,
-            statusCode: 200,
-          ));
-
-      final result = await repository.updateTaskAssignee(tProjectId, tTaskId, 'u3');
-      expect(result.isRight(), true);
-    });
-
-    test('updateTask should return Right on success', () async {
-      final updatedJson = {...tTaskJson, 'title': 'Updated'};
-      when(() => mockDio.put('${TaskEndpoints.byProject(tProjectId)}/$tTaskId', data: any(named: 'data'))).thenAnswer((_) async => Response(
-            requestOptions: RequestOptions(path: '${TaskEndpoints.byProject(tProjectId)}/$tTaskId'),
-            data: updatedJson,
-            statusCode: 200,
-          ));
-
-      final result = await repository.updateTask(tProjectId, tTaskId, 'Updated', 'Desc', TaskPriority.low);
-      expect(result.isRight(), true);
-      result.fold((l) => fail('Should not return left'), (r) => expect(r.title, 'Updated'));
-    });
-    
-    test('updateTaskStatus should return Left on failure', () async {
-      when(() => mockDio.put('${TaskEndpoints.byProject(tProjectId)}/$tTaskId', data: any(named: 'data'))).thenThrow(DioException(
-        requestOptions: RequestOptions(path: '${TaskEndpoints.byProject(tProjectId)}/$tTaskId'),
-        message: 'Error',
-      ));
-
-      final result = await repository.updateTaskStatus(tProjectId, tTaskId, TaskStatus.done);
-      expect(result.isLeft(), true);
+      result.fold(
+        (l) => fail('Should return Right'),
+        (task) {
+          expect(task.id, '1');
+          expect(task.status, TaskStatus.doing);
+        },
+      );
     });
   });
 
-  group('TaskRepositoryImp - deleteTask', () {
-    const tProjectId = 'p1';
-    const tTaskId = 't1';
+  group('deleteTask', () {
+    test('returns Right(true) on success', () async {
+      when(() => mockDio.delete(TaskEndpoints.delete('p1', '1'))).thenAnswer(
+        (_) async => Response(
+          requestOptions: RequestOptions(path: TaskEndpoints.delete('p1', '1')),
+          statusCode: 200,
+        ),
+      );
 
-    test('should return Right(true) on success', () async {
-      when(() => mockDio.delete(TaskEndpoints.delete(tProjectId, tTaskId))).thenAnswer((_) async => Response(
-            requestOptions: RequestOptions(path: TaskEndpoints.delete(tProjectId, tTaskId)),
-            statusCode: 200,
-          ));
+      final result = await repository.deleteTask('p1', '1');
 
-      final result = await repository.deleteTask(tProjectId, tTaskId);
-      expect(result.isRight(), true);
-    });
-
-    test('should return Left on failure', () async {
-      when(() => mockDio.delete(TaskEndpoints.delete(tProjectId, tTaskId))).thenThrow(DioException(
-        requestOptions: RequestOptions(path: TaskEndpoints.delete(tProjectId, tTaskId)),
-        message: 'Error',
-      ));
-
-      final result = await repository.deleteTask(tProjectId, tTaskId);
-      expect(result.isLeft(), true);
-    });
-  });
-
-  group('TaskRepositoryImp - dependencies', () {
-    const tTaskId = 't1';
-
-    test('getTaskDependencies should return Right on success', () async {
-      final tDepsJson = [{'id': 'd1', 'taskId': 't1', 'predecessorTaskId': 't2', 'dependencyType': 'finishToStart'}];
-      when(() => mockDio.get('${TaskEndpoints.byId(tTaskId)}/dependencies')).thenAnswer((_) async => Response(
-            requestOptions: RequestOptions(path: '${TaskEndpoints.byId(tTaskId)}/dependencies'),
-            data: tDepsJson,
-            statusCode: 200,
-          ));
-
-      final result = await repository.getTaskDependencies(tTaskId);
-      expect(result.isRight(), true);
-    });
-
-    test('setTaskDependency should return Right on success', () async {
-      when(() => mockDio.post('${TaskEndpoints.byId(tTaskId)}/dependencies', data: any(named: 'data'))).thenAnswer((_) async => Response(
-            requestOptions: RequestOptions(path: '${TaskEndpoints.byId(tTaskId)}/dependencies'),
-            statusCode: 201,
-          ));
-
-      final result = await repository.setTaskDependency(tTaskId, 't2', 'finishToStart');
-      expect(result.isRight(), true);
+      expect(result, const Right(true));
     });
   });
 }

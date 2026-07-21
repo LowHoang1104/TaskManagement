@@ -124,35 +124,110 @@ void main() {
     });
   });
 
-  // Adding a few membership tests as examples (same pattern applies to others)
-  group('ProjectRepositoryImp - Membership functions', () {
+  group('ProjectRepositoryImp - getProjectMembers', () {
     const tProjectId = 'p1';
+    final tMembersJson = [
+      {'id': 'u1', 'email': 'test@test.com', 'fullName': 'User 1', 'role': 'Admin'},
+    ];
 
-    test('getProjectMembers should return Right on success', () async {
+    test('should return Right(List<UserEntity>) on success', () async {
       when(() => mockDio.get(ProjectEndpoints.members(tProjectId))).thenAnswer((_) async => Response(
             requestOptions: RequestOptions(path: ProjectEndpoints.members(tProjectId)),
-            data: [{'id': 'u1', 'email': 'test@test.com', 'fullName': 'User 1'}],
+            data: tMembersJson,
             statusCode: 200,
           ));
 
       final result = await repository.getProjectMembers(tProjectId);
+
       expect(result.isRight(), true);
+      result.fold(
+        (l) => fail('Should not return left'),
+        (r) {
+          expect(r.length, 1);
+          expect(r.first.id, 'u1');
+          expect(r.first.role, 'Admin');
+        },
+      );
     });
 
-    test('inviteProjectMember should return Right on success', () async {
+    test('should return Left on failure', () async {
+      when(() => mockDio.get(ProjectEndpoints.members(tProjectId))).thenThrow(DioException(
+        requestOptions: RequestOptions(path: ProjectEndpoints.members(tProjectId)),
+        message: 'Error',
+      ));
+
+      final result = await repository.getProjectMembers(tProjectId);
+      expect(result.isLeft(), true);
+    });
+  });
+
+  group('ProjectRepositoryImp - inviteProjectMember', () {
+    const tProjectId = 'p1';
+    const tEmail = 'new@test.com';
+    final tMemberJson = {'id': 'u2', 'email': tEmail, 'fullName': 'User 2', 'status': 'Pending'};
+
+    test('should return Right(UserEntity) on success', () async {
       when(() => mockDio.post(ProjectEndpoints.members(tProjectId), data: any(named: 'data'))).thenAnswer((_) async => Response(
             requestOptions: RequestOptions(path: ProjectEndpoints.members(tProjectId)),
-            data: {'id': 'u2', 'email': 'new@test.com', 'fullName': 'User 2'},
+            data: tMemberJson,
             statusCode: 200,
           ));
 
-      final result = await repository.inviteProjectMember(tProjectId, 'new@test.com');
+      final result = await repository.inviteProjectMember(tProjectId, tEmail);
+
       expect(result.isRight(), true);
+      result.fold((l) => fail('Should not return left'), (r) => expect(r.email, tEmail));
     });
 
-    test('acceptProjectInvitation should return Right on success', () async {
-      when(() => mockDio.put('${ProjectEndpoints.members(tProjectId)}/accept')).thenAnswer((_) async => Response(
-            requestOptions: RequestOptions(path: '${ProjectEndpoints.members(tProjectId)}/accept'),
+    test('should return Left on failure', () async {
+      when(() => mockDio.post(ProjectEndpoints.members(tProjectId), data: any(named: 'data'))).thenThrow(DioException(
+        requestOptions: RequestOptions(path: ProjectEndpoints.members(tProjectId)),
+        message: 'Error',
+      ));
+
+      final result = await repository.inviteProjectMember(tProjectId, tEmail);
+      expect(result.isLeft(), true);
+    });
+  });
+
+  group('ProjectRepositoryImp - updateProjectMemberRole', () {
+    const tProjectId = 'p1';
+    const tUserId = 'u1';
+    const tNewRole = 'Admin';
+    final tPath = '${ProjectEndpoints.members(tProjectId)}/$tUserId/role';
+    final tMemberJson = {'id': tUserId, 'email': 'test@test.com', 'fullName': 'User 1', 'role': tNewRole};
+
+    test('should return Right(UserEntity) on success', () async {
+      when(() => mockDio.put(tPath, data: any(named: 'data'))).thenAnswer((_) async => Response(
+            requestOptions: RequestOptions(path: tPath),
+            data: tMemberJson,
+            statusCode: 200,
+          ));
+
+      final result = await repository.updateProjectMemberRole(tProjectId, tUserId, tNewRole);
+
+      expect(result.isRight(), true);
+      result.fold((l) => fail('Should not return left'), (r) => expect(r.role, tNewRole));
+    });
+
+    test('should return Left on failure', () async {
+      when(() => mockDio.put(tPath, data: any(named: 'data'))).thenThrow(DioException(
+        requestOptions: RequestOptions(path: tPath),
+        message: 'Error',
+      ));
+
+      final result = await repository.updateProjectMemberRole(tProjectId, tUserId, tNewRole);
+      expect(result.isLeft(), true);
+    });
+  });
+
+  group('ProjectRepositoryImp - acceptProjectInvitation', () {
+    const tProjectId = 'p1';
+    final tPath = '${ProjectEndpoints.members(tProjectId)}/accept';
+
+    test('should return Right(true) on success', () async {
+      when(() => mockDio.put(tPath)).thenAnswer((_) async => Response(
+            requestOptions: RequestOptions(path: tPath),
             statusCode: 200,
           ));
 
@@ -160,8 +235,82 @@ void main() {
       expect(result.isRight(), true);
     });
 
-    test('removeProjectMember should return Left on failure', () async {
-      const tUserId = 'u1';
+    test('should return Left on failure', () async {
+      when(() => mockDio.put(tPath)).thenThrow(DioException(
+        requestOptions: RequestOptions(path: tPath),
+        message: 'Error',
+      ));
+
+      final result = await repository.acceptProjectInvitation(tProjectId);
+      expect(result.isLeft(), true);
+    });
+  });
+
+  group('ProjectRepositoryImp - declineProjectInvitation', () {
+    const tProjectId = 'p1';
+    final tPath = '${ProjectEndpoints.members(tProjectId)}/decline';
+
+    test('should return Right(true) on success', () async {
+      when(() => mockDio.delete(tPath)).thenAnswer((_) async => Response(
+            requestOptions: RequestOptions(path: tPath),
+            statusCode: 200,
+          ));
+
+      final result = await repository.declineProjectInvitation(tProjectId);
+      expect(result.isRight(), true);
+    });
+
+    test('should return Left on failure', () async {
+      when(() => mockDio.delete(tPath)).thenThrow(DioException(
+        requestOptions: RequestOptions(path: tPath),
+        message: 'Error',
+      ));
+
+      final result = await repository.declineProjectInvitation(tProjectId);
+      expect(result.isLeft(), true);
+    });
+  });
+
+  group('ProjectRepositoryImp - leaveProject', () {
+    const tProjectId = 'p1';
+    final tPath = '${ProjectEndpoints.byId(tProjectId)}/members/leave';
+
+    test('should return Right(true) on success', () async {
+      when(() => mockDio.delete(tPath)).thenAnswer((_) async => Response(
+            requestOptions: RequestOptions(path: tPath),
+            statusCode: 200,
+          ));
+
+      final result = await repository.leaveProject(tProjectId);
+      expect(result.isRight(), true);
+    });
+
+    test('should return Left on failure', () async {
+      when(() => mockDio.delete(tPath)).thenThrow(DioException(
+        requestOptions: RequestOptions(path: tPath),
+        message: 'Error',
+      ));
+
+      final result = await repository.leaveProject(tProjectId);
+      expect(result.isLeft(), true);
+    });
+  });
+
+  group('ProjectRepositoryImp - removeProjectMember', () {
+    const tProjectId = 'p1';
+    const tUserId = 'u1';
+
+    test('should return Right(true) on success', () async {
+      when(() => mockDio.delete(ProjectEndpoints.member(tProjectId, tUserId))).thenAnswer((_) async => Response(
+            requestOptions: RequestOptions(path: ProjectEndpoints.member(tProjectId, tUserId)),
+            statusCode: 200,
+          ));
+
+      final result = await repository.removeProjectMember(tProjectId, tUserId);
+      expect(result.isRight(), true);
+    });
+
+    test('should return Left on failure', () async {
       when(() => mockDio.delete(ProjectEndpoints.member(tProjectId, tUserId))).thenThrow(DioException(
         requestOptions: RequestOptions(path: ProjectEndpoints.member(tProjectId, tUserId)),
         message: 'Error',

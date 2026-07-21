@@ -1,6 +1,7 @@
+import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:dartz/dartz.dart';
+
 import 'package:task_management/feature/application/i_services/i_task_service.dart';
 import 'package:task_management/feature/domain/entities/task_entity.dart';
 import 'package:task_management/feature/domain/entities/enums.dart';
@@ -9,138 +10,134 @@ import 'package:task_management/feature/presentation/providers/task_provider.dar
 class MockTaskService extends Mock implements ITaskService {}
 
 void main() {
+  late MockTaskService mockTaskService;
   late TaskNotifier notifier;
-  late MockTaskService mockService;
-  const tProjectId = 'p1';
-  const tTaskId = 't1';
 
-  final tTask = TaskEntity(
-    id: tTaskId,
-    projectId: tProjectId,
+  final testTask = TaskEntity(
+    id: '1',
+    projectId: 'p1',
     title: 'Test Task',
-    description: 'Desc',
+    description: '',
     status: TaskStatus.todo,
-    priority: TaskPriority.medium,
-    assigneeId: 'u1',
-    reporterId: 'u2',
+    priority: TaskPriority.high,
+    assigneeId: null,
+    reporterId: 'u1',
+    createdAt: DateTime(2024, 1, 1),
+    updatedAt: DateTime(2024, 1, 1),
     order: 0,
-    createdAt: DateTime.now(),
-    updatedAt: DateTime.now(),
-    relations: const [],
+    relations: [],
   );
 
   setUp(() {
-    mockService = MockTaskService();
-    notifier = TaskNotifier(mockService, tProjectId);
+    mockTaskService = MockTaskService();
+    notifier = TaskNotifier(mockTaskService, 'p1');
   });
 
-  group('TaskNotifier - fetchTasks', () {
-    test('should set tasks when fetch is successful', () async {
-      when(() => mockService.getTasks(tProjectId))
-          .thenAnswer((_) async => Right([tTask]));
+  group('fetchTasks', () {
+    test('sets tasks on success', () async {
+      when(() => mockTaskService.getTasks('p1')).thenAnswer((_) async => Right([testTask]));
 
       await notifier.fetchTasks();
 
       expect(notifier.state.isLoading, false);
-      expect(notifier.state.error, null);
+      expect(notifier.state.error, isNull);
       expect(notifier.state.tasks.length, 1);
-      expect(notifier.state.tasks.first.id, tTaskId);
+      expect(notifier.state.tasks.first, testTask);
     });
 
-    test('should set error when fetch fails', () async {
-      when(() => mockService.getTasks(tProjectId))
-          .thenAnswer((_) async => const Left('Fetch Error'));
+    test('sets error on failure', () async {
+      when(() => mockTaskService.getTasks('p1')).thenAnswer((_) async => const Left('Failed to fetch'));
 
       await notifier.fetchTasks();
 
       expect(notifier.state.isLoading, false);
-      expect(notifier.state.error, 'Fetch Error');
-      expect(notifier.state.tasks, isEmpty);
+      expect(notifier.state.error, 'Failed to fetch');
+      expect(notifier.state.tasks.isEmpty, true);
     });
   });
 
-  group('TaskNotifier - createTask', () {
-    test('should add task to state and return it on success', () async {
-      when(() => mockService.createTask(tProjectId, 'Test Task', 'Desc', TaskStatus.todo, TaskPriority.medium))
-          .thenAnswer((_) async => Right(tTask));
+  group('createTask', () {
+    test('adds task to state on success', () async {
+      when(() => mockTaskService.createTask('p1', 'New Task', 'Desc', TaskStatus.todo, TaskPriority.medium, assigneeId: null))
+          .thenAnswer((_) async => Right(testTask));
 
-      final result = await notifier.createTask('Test Task', 'Desc', TaskStatus.todo, TaskPriority.medium);
+      final result = await notifier.createTask('New Task', 'Desc', TaskStatus.todo, TaskPriority.medium);
 
-      expect(result, tTask);
+      expect(result, testTask);
+      expect(notifier.state.tasks.contains(testTask), true);
+    });
+
+    test('sets error and returns null on failure', () async {
+      when(() => mockTaskService.createTask('p1', 'New Task', 'Desc', TaskStatus.todo, TaskPriority.medium, assigneeId: null))
+          .thenAnswer((_) async => const Left('Creation failed'));
+
+      final result = await notifier.createTask('New Task', 'Desc', TaskStatus.todo, TaskPriority.medium);
+
+      expect(result, isNull);
+      expect(notifier.state.error, 'Creation failed');
+    });
+  });
+
+  group('deleteTask', () {
+    test('removes task from state on success', () async {
+      notifier.state = TaskState(tasks: [testTask]);
+      when(() => mockTaskService.deleteTask('p1', '1')).thenAnswer((_) async => const Right(true));
+
+      final success = await notifier.deleteTask('1');
+
+      expect(success, true);
+      expect(notifier.state.tasks.isEmpty, true);
+    });
+
+    test('sets error and returns false on failure', () async {
+      notifier.state = TaskState(tasks: [testTask]);
+      when(() => mockTaskService.deleteTask('p1', '1')).thenAnswer((_) async => const Left('Delete failed'));
+
+      final success = await notifier.deleteTask('1');
+
+      expect(success, false);
+      expect(notifier.state.error, 'Delete failed');
       expect(notifier.state.tasks.length, 1);
-      expect(notifier.state.tasks.last.id, tTaskId);
-    });
-
-    test('should return null and set error on failure', () async {
-      when(() => mockService.createTask(tProjectId, 'Test Task', 'Desc', TaskStatus.todo, TaskPriority.medium))
-          .thenAnswer((_) async => const Left('Create Error'));
-
-      final result = await notifier.createTask('Test Task', 'Desc', TaskStatus.todo, TaskPriority.medium);
-
-      expect(result, null);
-      expect(notifier.state.error, 'Create Error');
     });
   });
 
-  group('TaskNotifier - deleteTask', () {
-    test('should remove task from state on success', () async {
-      // Setup state first
-      when(() => mockService.getTasks(tProjectId)).thenAnswer((_) async => Right([tTask]));
-      await notifier.fetchTasks();
-      
-      when(() => mockService.deleteTask(tProjectId, tTaskId))
-          .thenAnswer((_) async => const Right(true));
+  group('updateTask', () {
+    final updatedTask = testTask.copyWith(status: TaskStatus.done);
 
-      final result = await notifier.deleteTask(tTaskId);
-
-      expect(result, true);
-      expect(notifier.state.tasks, isEmpty);
-    });
-
-    test('should set error on failure', () async {
-      when(() => mockService.deleteTask(tProjectId, tTaskId))
-          .thenAnswer((_) async => const Left('Delete Error'));
-
-      final result = await notifier.deleteTask(tTaskId);
-
-      expect(result, false);
-      expect(notifier.state.error, 'Delete Error');
-    });
-  });
-
-  group('TaskNotifier - updateTaskStatusLocally', () {
-    test('should update status optimistically and revert on failure', () async {
-      // Setup initial state
-      when(() => mockService.getTasks(tProjectId)).thenAnswer((_) async => Right([tTask]));
-      await notifier.fetchTasks();
-      
-      // Stub the update to fail
-      when(() => mockService.updateTaskStatus(tProjectId, tTaskId, TaskStatus.doing))
-          .thenAnswer((_) async => const Left('Update Error'));
-      
-      // Perform local update
-      await notifier.updateTaskStatusLocally(tTaskId, TaskStatus.doing);
-      
-      // Since we awaited it, it reverted back to the old state because of error
-      expect(notifier.state.error, 'Update Error');
-      expect(notifier.state.tasks.first.status, TaskStatus.todo);
-    });
-    
-    test('should update status optimistically and keep on success', () async {
-      // Setup initial state
-      when(() => mockService.getTasks(tProjectId)).thenAnswer((_) async => Right([tTask]));
-      await notifier.fetchTasks();
-      
-      // Stub the update to succeed
-      final updatedTask = tTask.copyWith(status: TaskStatus.done);
-      when(() => mockService.updateTaskStatus(tProjectId, tTaskId, TaskStatus.done))
+    test('updateTaskStatusLocally updates state and calls service on success', () async {
+      notifier.state = TaskState(tasks: [testTask]);
+      when(() => mockTaskService.updateTaskStatus('p1', '1', TaskStatus.done))
           .thenAnswer((_) async => Right(updatedTask));
-      
-      // Perform local update
-      await notifier.updateTaskStatusLocally(tTaskId, TaskStatus.done);
-      
-      expect(notifier.state.error, null);
+
+      await notifier.updateTaskStatusLocally('1', TaskStatus.done);
+
+      // Status should be updated locally first, then kept on success
       expect(notifier.state.tasks.first.status, TaskStatus.done);
+      expect(notifier.state.error, isNull);
+    });
+
+    test('updateTaskStatusLocally reverts state on failure', () async {
+      notifier.state = TaskState(tasks: [testTask]);
+      when(() => mockTaskService.updateTaskStatus('p1', '1', TaskStatus.done))
+          .thenAnswer((_) async => const Left('Update failed'));
+
+      await notifier.updateTaskStatusLocally('1', TaskStatus.done);
+
+      // Reverts to old status on failure
+      expect(notifier.state.tasks.first.status, TaskStatus.todo);
+      expect(notifier.state.error, 'Update failed');
+    });
+
+    test('updateTaskAssignee calls service and updates state on success', () async {
+      notifier.state = TaskState(tasks: [testTask]);
+      final assignedTask = testTask.copyWith(assigneeId: 'u2');
+      when(() => mockTaskService.updateTaskAssignee('p1', '1', 'u2'))
+          .thenAnswer((_) async => Right(assignedTask));
+
+      await notifier.updateTaskAssignee('1', 'u2');
+
+      expect(notifier.state.tasks.first.assigneeId, 'u2');
+      expect(notifier.state.error, isNull);
     });
   });
 }

@@ -291,4 +291,58 @@ void main() {
       expect(result.isLeft(), true);
     });
   });
+
+  group('WorkspaceRepositoryImp - acceptWorkspaceInvite', () {
+    const tWorkspaceId = '1';
+
+    test('should return Right(true) on success', () async {
+      when(() => mockDio.post(WorkspaceEndpoints.accept(tWorkspaceId))).thenAnswer((_) async => Response(
+            requestOptions: RequestOptions(path: WorkspaceEndpoints.accept(tWorkspaceId)),
+            statusCode: 200,
+          ));
+
+      final result = await repository.acceptWorkspaceInvite(tWorkspaceId);
+
+      expect(result.isRight(), true);
+      result.fold((l) => fail('Should not return left'), (r) => expect(r, true));
+    });
+
+    test('should return Left on failure', () async {
+      when(() => mockDio.post(WorkspaceEndpoints.accept(tWorkspaceId))).thenThrow(DioException(
+        requestOptions: RequestOptions(path: WorkspaceEndpoints.accept(tWorkspaceId)),
+        message: 'Network Error',
+      ));
+
+      final result = await repository.acceptWorkspaceInvite(tWorkspaceId);
+
+      expect(result.isLeft(), true);
+    });
+  });
+
+  group('WorkspaceRepositoryImp - declineWorkspaceInvite', () {
+    const tWorkspaceId = '1';
+
+    test('should return Right(true) on success', () async {
+      when(() => mockDio.post(WorkspaceEndpoints.decline(tWorkspaceId))).thenAnswer((_) async => Response(
+            requestOptions: RequestOptions(path: WorkspaceEndpoints.decline(tWorkspaceId)),
+            statusCode: 200,
+          ));
+
+      final result = await repository.declineWorkspaceInvite(tWorkspaceId);
+
+      expect(result.isRight(), true);
+      result.fold((l) => fail('Should not return left'), (r) => expect(r, true));
+    });
+
+    test('should return Left on failure', () async {
+      when(() => mockDio.post(WorkspaceEndpoints.decline(tWorkspaceId))).thenThrow(DioException(
+        requestOptions: RequestOptions(path: WorkspaceEndpoints.decline(tWorkspaceId)),
+        message: 'Network Error',
+      ));
+
+      final result = await repository.declineWorkspaceInvite(tWorkspaceId);
+
+      expect(result.isLeft(), true);
+    });
+  });
 }

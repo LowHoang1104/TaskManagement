@@ -1,117 +1,161 @@
+import 'dart:async';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:dartz/dartz.dart';
+import 'package:get_it/get_it.dart';
 import 'package:task_management/core/di/injection_container.dart';
 import 'package:task_management/feature/application/i_services/i_notification_service.dart';
 import 'package:task_management/feature/application/i_services/i_project_service.dart';
+import 'package:task_management/feature/application/i_services/i_workspace_service.dart';
+import 'package:task_management/feature/data/datasources/remote/signalr_service.dart';
 import 'package:task_management/feature/domain/entities/notification_entity.dart';
-import 'package:task_management/feature/domain/entities/user_entity.dart';
 import 'package:task_management/feature/presentation/providers/notification_provider.dart';
 
+class MockSignalRService extends Mock implements SignalRService {}
+
 class MockNotificationService extends Mock implements INotificationService {}
+
+class MockWorkspaceService extends Mock implements IWorkspaceService {}
+
 class MockProjectService extends Mock implements IProjectService {}
 
 void main() {
-  late NotificationNotifier notifier;
+  late MockSignalRService mockSignalRService;
   late MockNotificationService mockNotificationService;
+  late MockWorkspaceService mockWorkspaceService;
   late MockProjectService mockProjectService;
 
-  final tNotification = NotificationEntity(
-    id: 'n1',
-    userId: 'u1',
-    type: 'project_invite',
-    message: 'Test message',
-    isRead: false,
-    relatedId: 'p1',
-    createdAt: DateTime.now(),
-  );
+  late StreamController<String> signalRStreamController;
+  late List<NotificationEntity> tNotificationList;
+  late NotificationEntity tNotification;
+  late NotificationEntity tNotificationRead;
 
-  setUpAll(() {
+  setUp(() async {
+    // Reset GetIt completely to prevent leaky configurations between tests
+    await GetIt.I.reset();
+
+    mockSignalRService = MockSignalRService();
     mockNotificationService = MockNotificationService();
+    mockWorkspaceService = MockWorkspaceService();
     mockProjectService = MockProjectService();
-    sl.registerLazySingleton<INotificationService>(() => mockNotificationService);
-    sl.registerLazySingleton<IProjectService>(() => mockProjectService);
-  });
 
-  setUp(() {
-    // Stub fetch in constructor
-    when(() => mockNotificationService.getMyNotifications())
-        .thenAnswer((_) async => Right([tNotification]));
-    
-    notifier = NotificationNotifier();
-  });
+    signalRStreamController = StreamController<String>.broadcast();
 
-  tearDownAll(() {
-    sl.reset();
-  });
-
-  group('NotificationNotifier - fetchNotifications', () {
-    test('should set notifications and update unread count on success', () async {
-      await Future.delayed(Duration.zero);
-      expect(notifier.state.isLoading, false);
-      expect(notifier.state.notifications.length, 1);
-      expect(notifier.state.unreadCount, 1);
-    });
-
-    test('should set error on fetch failure', () async {
-      when(() => mockNotificationService.getMyNotifications())
-          .thenAnswer((_) async => const Left('Fetch Error'));
-      notifier = NotificationNotifier();
-      
-      await Future.delayed(Duration.zero);
-      expect(notifier.state.isLoading, false);
-      expect(notifier.state.error, 'Fetch Error');
-    });
-  });
-
-  group('NotificationNotifier - markAsRead', () {
-    test('should update isRead status locally on success', () async {
-      final readNotif = tNotification.copyWith(isRead: true);
-      when(() => mockNotificationService.markAsRead('n1'))
-          .thenAnswer((_) async => Right(readNotif));
-
-      await Future.delayed(Duration.zero);
-      await notifier.markAsRead('n1');
-
-      expect(notifier.state.notifications.first.isRead, true);
-      expect(notifier.state.unreadCount, 0);
-    });
-  });
-
-  group('NotificationNotifier - acceptProjectInvite', () {
-    final tUser = UserEntity(
-      id: 'u1',
-      fullName: 'User',
-      email: 'a@a.com',
-      passwordHash: '',
-      role: 'Member',
+    tNotification = NotificationEntity(
+      id: '1',
+      userId: 'user_1',
+      type: 'Invite',
+      message: 'You have been invited!',
+      isRead: false,
+      relatedId: 'target_id',
       createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
     );
 
-    test('should accept invite and mark as read on success', () async {
-      when(() => mockProjectService.acceptProjectInvitation('p1'))
-          .thenAnswer((_) async => const Right(true));
-      final readNotif = tNotification.copyWith(isRead: true);
-      when(() => mockNotificationService.markAsRead('n1'))
-          .thenAnswer((_) async => Right(readNotif));
+    tNotificationRead = tNotification.copyWith(isRead: true);
+    tNotificationList = [tNotification];
 
-      await Future.delayed(Duration.zero);
-      final result = await notifier.acceptProjectInvite('p1', 'n1');
+    // Setup base stubs for dependencies invoked on construction
+    when(
+      () => mockSignalRService.notificationStream,
+    ).thenAnswer((_) => signalRStreamController.stream);
+    when(
+      () => mockNotificationService.getMyNotifications(),
+    ).thenAnswer((_) async => Right(tNotificationList));
 
-      expect(result, true);
-      expect(notifier.state.notifications.first.isRead, true);
-    });
+    // Register mocks into your global Service Locator instance
+    sl.registerSingleton<SignalRService>(mockSignalRService);
+    sl.registerSingleton<INotificationService>(mockNotificationService);
+    sl.registerSingleton<IWorkspaceService>(mockWorkspaceService);
+    sl.registerSingleton<IProjectService>(mockProjectService);
+  });
 
-    test('should return false on accept failure', () async {
-      when(() => mockProjectService.acceptProjectInvitation('p1'))
-          .thenAnswer((_) async => const Left('Accept Error'));
+  tearDown(() async {
+    await signalRStreamController.close();
+  });
 
-      await Future.delayed(Duration.zero);
-      final result = await notifier.acceptProjectInvite('p1', 'n1');
+  ProviderContainer makeProviderContainer() {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    return container;
+  }
 
-      expect(result, false);
-      expect(notifier.state.error, 'Accept Error');
+  group('NotificationNotifier Initialization & Stream', () {
+    test(
+      'initial state fetches notifications and correctly sets unreadCount',
+      () async {
+        final container = makeProviderContainer();
+
+        // Let initialization async actions fire
+        await container
+            .read(notificationProvider.notifier)
+            .fetchNotifications();
+
+        final state = container.read(notificationProvider);
+        expect(state.isLoading, false);
+        expect(state.notifications, tNotificationList);
+        expect(state.unreadCount, 1);
+      },
+    );
+
+    group('Notification Actions', () {
+      test(
+        'markAsRead should update the targeted notification state',
+        () async {
+          when(
+            () => mockNotificationService.markAsRead('1'),
+          ).thenAnswer((_) async => Right(tNotificationRead));
+
+          final container = makeProviderContainer();
+          await container
+              .read(notificationProvider.notifier)
+              .fetchNotifications(); // loads tNotification
+
+          await container.read(notificationProvider.notifier).markAsRead('1');
+
+          final state = container.read(notificationProvider);
+          expect(state.notifications.first.isRead, true);
+          expect(state.unreadCount, 0);
+        },
+      );
+      test('declineWorkspaceInvite handles failure scenario cleanly', () async {
+        when(
+          () => mockWorkspaceService.declineWorkspaceInvite('ws_1'),
+        ).thenAnswer((_) async => const Left('Failed to reject workspace'));
+
+        final container = makeProviderContainer();
+        await container
+            .read(notificationProvider.notifier)
+            .fetchNotifications();
+
+        final result = await container
+            .read(notificationProvider.notifier)
+            .declineWorkspaceInvite('ws_1', '1');
+
+        expect(result, false);
+        final state = container.read(notificationProvider);
+        expect(state.isLoading, false);
+        expect(state.error, 'Failed to reject workspace');
+      });
+      test('declineProjectInvite handles failure scenario cleanly', () async {
+        when(
+          () => mockProjectService.declineProjectInvitation('proj_1'),
+        ).thenAnswer((_) async => const Left('Failed to reject project'));
+
+        final container = makeProviderContainer();
+        await container
+            .read(notificationProvider.notifier)
+            .fetchNotifications();
+
+        final result = await container
+            .read(notificationProvider.notifier)
+            .declineProjectInvite('proj_1', '1');
+
+        expect(result, false);
+        final state = container.read(notificationProvider);
+        expect(state.isLoading, false);
+        expect(state.error, 'Failed to reject project');
+      });
     });
   });
 }

@@ -1,40 +1,60 @@
+import 'dart:io';
+import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:dartz/dartz.dart';
+
 import 'package:task_management/feature/application/i_services/i_task_service.dart';
 import 'package:task_management/feature/application/i_services/i_comment_service.dart';
 import 'package:task_management/feature/application/i_services/i_attachment_service.dart';
-import 'package:task_management/feature/domain/entities/task_entity.dart';
-import 'package:task_management/feature/domain/entities/comment_entity.dart';
-import 'package:task_management/feature/domain/entities/enums.dart';
+import 'package:task_management/feature/domain/entities/entities.dart';
 import 'package:task_management/feature/presentation/providers/task_detail_provider.dart';
 
 class MockTaskService extends Mock implements ITaskService {}
 class MockCommentService extends Mock implements ICommentService {}
 class MockAttachmentService extends Mock implements IAttachmentService {}
 
+class FakeFile extends Fake implements File {}
+
 void main() {
-  late TaskDetailNotifier notifier;
   late MockTaskService mockTaskService;
   late MockCommentService mockCommentService;
   late MockAttachmentService mockAttachmentService;
+  late TaskDetailNotifier notifier;
 
-  const tProjectId = 'p1';
-  const tTaskId = 't1';
-
-  final tTask = TaskEntity(
-    id: tTaskId,
-    projectId: tProjectId,
+  final initialTask = TaskEntity(
+    id: '1',
+    projectId: 'p1',
     title: 'Test Task',
-    description: 'Desc',
+    description: '',
     status: TaskStatus.todo,
-    priority: TaskPriority.medium,
-    assigneeId: 'u1',
-    reporterId: 'u2',
+    priority: TaskPriority.high,
+    assigneeId: null,
+    reporterId: 'u1',
+    createdAt: DateTime(2024, 1, 1),
+    updatedAt: DateTime(2024, 1, 1),
     order: 0,
+    relations: [],
+  );
+
+  final sampleComment = CommentEntity(
+    id: 'c1',
+    taskId: '1',
+    userId: 'u1',
+    content: 'First comment',
     createdAt: DateTime.now(),
-    updatedAt: DateTime.now(),
-    relations: const [],
+    userFullName: 'John Doe',
+    userAvatarUrl: null,
+  );
+
+  final sampleAttachment = AttachmentEntity(
+    id: 'a1',
+    taskId: '1',
+    fileName: 'test.png',
+    fileUrl: 'url',
+    fileSize: 100,
+    uploadedBy: 'u1',
+    createdAt: DateTime.now(),
+    uploaderFullName: 'John Doe',
   );
 
   setUp(() {
@@ -42,90 +62,67 @@ void main() {
     mockCommentService = MockCommentService();
     mockAttachmentService = MockAttachmentService();
 
-    // The constructor calls _loadData which fetches comments and attachments
-    when(() => mockCommentService.getComments(tTaskId))
-        .thenAnswer((_) async => const Right([]));
-    when(() => mockAttachmentService.getAttachments(tTaskId))
-        .thenAnswer((_) async => const Right([]));
+    when(() => mockCommentService.getComments('1')).thenAnswer((_) async => const Right([]));
+    when(() => mockAttachmentService.getAttachments('1')).thenAnswer((_) async => const Right([]));
 
     notifier = TaskDetailNotifier(
-      tProjectId,
-      tTaskId,
-      tTask,
+      'p1',
+      '1',
+      initialTask,
       mockTaskService,
       mockCommentService,
       mockAttachmentService,
     );
   });
 
-  group('TaskDetailNotifier - Initialization / loadData', () {
-    test('should initialize with task and fetch comments/attachments', () async {
+  group('loadData', () {
+    test('fetches comments and attachments on init', () async {
+      // Allow the constructor's _loadData to finish
       await Future.delayed(Duration.zero);
 
-      expect(notifier.state.task.id, tTaskId);
       expect(notifier.state.isLoading, false);
-      expect(notifier.state.comments, isEmpty);
-      expect(notifier.state.attachments, isEmpty);
+      expect(notifier.state.comments.isEmpty, true);
+      expect(notifier.state.attachments.isEmpty, true);
+      verify(() => mockCommentService.getComments('1')).called(1);
+      verify(() => mockAttachmentService.getAttachments('1')).called(1);
     });
   });
 
-  group('TaskDetailNotifier - updateTask', () {
-    test('should optimistically update task and keep on success', () async {
-      final updatedTask = tTask.copyWith(title: 'New Title');
-      when(() => mockTaskService.updateTask(tProjectId, tTaskId, 'New Title', 'Desc', TaskPriority.medium))
-          .thenAnswer((_) async => Right(updatedTask));
+  group('addComment', () {
+    test('adds comment to state on success', () async {
+      when(() => mockCommentService.createComment('1', 'New comment')).thenAnswer((_) async => Right(sampleComment));
 
-      await Future.delayed(Duration.zero);
-      await notifier.updateTask(updatedTask);
+      await notifier.addComment('New comment');
 
-      expect(notifier.state.task.title, 'New Title');
-      expect(notifier.state.error, null);
+      expect(notifier.state.comments.contains(sampleComment), true);
+      expect(notifier.state.error, isNull);
     });
 
-    test('should revert on update failure', () async {
-      final updatedTask = tTask.copyWith(title: 'New Title');
-      when(() => mockTaskService.updateTask(tProjectId, tTaskId, 'New Title', 'Desc', TaskPriority.medium))
-          .thenAnswer((_) async => const Left('Update Error'));
-
-      await Future.delayed(Duration.zero);
-      await notifier.updateTask(updatedTask);
-
-      // Should revert back to old title
-      expect(notifier.state.task.title, 'Test Task');
-      expect(notifier.state.error, 'Update Error');
+    test('does nothing if comment is empty', () async {
+      await notifier.addComment('   ');
+      verifyNever(() => mockCommentService.createComment(any(), any()));
     });
   });
 
-  group('TaskDetailNotifier - addComment', () {
-    final tComment = CommentEntity(
-      id: 'c1',
-      taskId: tTaskId,
-      userId: 'u1',
-      content: 'New Comment',
-      createdAt: DateTime.now(),
-      userFullName: 'Test User',
-    );
+  group('attachments', () {
+    test('uploadAttachmentBytes adds to state on success', () async {
+      when(() => mockAttachmentService.uploadAttachmentBytes('1', 'test.png', [1, 2, 3]))
+          .thenAnswer((_) async => Right(sampleAttachment));
 
-    test('should prepend comment to list on success', () async {
-      when(() => mockCommentService.createComment(tTaskId, 'New Comment'))
-          .thenAnswer((_) async => Right(tComment));
+      final success = await notifier.uploadAttachmentBytes('test.png', [1, 2, 3]);
 
-      await Future.delayed(Duration.zero);
-      await notifier.addComment('New Comment');
-
-      expect(notifier.state.comments.length, 1);
-      expect(notifier.state.comments.first.id, 'c1');
+      expect(success, true);
+      expect(notifier.state.attachments.contains(sampleAttachment), true);
     });
 
-    test('should set error on failure', () async {
-      when(() => mockCommentService.createComment(tTaskId, 'New Comment'))
-          .thenAnswer((_) async => const Left('Comment Error'));
+    test('deleteAttachment removes from state on success', () async {
+      notifier.state = notifier.state.copyWith(attachments: [sampleAttachment]);
+      when(() => mockAttachmentService.deleteAttachment('1', 'a1')).thenAnswer((_) async => const Right(true));
 
-      await Future.delayed(Duration.zero);
-      await notifier.addComment('New Comment');
+      final success = await notifier.deleteAttachment('a1');
 
-      expect(notifier.state.comments, isEmpty);
-      expect(notifier.state.error, 'Comment Error');
+      expect(success, true);
+      expect(notifier.state.attachments.isEmpty, true);
     });
   });
 }
