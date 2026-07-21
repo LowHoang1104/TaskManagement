@@ -1,8 +1,10 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.SignalR;
 using TaskApi.Data;
 using TaskApi.DTOs;
 using TaskApi.Models;
+using TaskApi.Hubs;
 
 namespace TaskApi.Services
 {
@@ -10,11 +12,13 @@ namespace TaskApi.Services
     {
         private readonly AppDbContext _context;
         private readonly IMapper _mapper;
+        private readonly IHubContext<NotificationHub> _hubContext;
 
-        public TaskService(AppDbContext context, IMapper mapper)
+        public TaskService(AppDbContext context, IMapper mapper, IHubContext<NotificationHub> hubContext)
         {
             _context = context;
             _mapper = mapper;
+            _hubContext = hubContext;
         }
 
         public async Task<IEnumerable<TaskDto>> GetTasksAsync(string projectId)
@@ -138,6 +142,9 @@ namespace TaskApi.Services
 
             var createdDto = _mapper.Map<TaskDto>(task);
             createdDto.Relations = await LoadRelationsAsync(task.Id);
+            
+            await _hubContext.Clients.All.SendAsync("RefreshProject", projectId);
+            
             return createdDto;
         }
 
@@ -272,6 +279,9 @@ namespace TaskApi.Services
 
             var updatedDto = _mapper.Map<TaskDto>(task);
             updatedDto.Relations = await LoadRelationsAsync(task.Id);
+            
+            await _hubContext.Clients.All.SendAsync("RefreshProject", task.ProjectId);
+            
             return updatedDto;
         }
 
@@ -291,8 +301,11 @@ namespace TaskApi.Services
                 throw new UnauthorizedAccessException("Only project Admins or Owners can delete the task.");
             }
 
+            var projectId = task.ProjectId;
             _context.Tasks.Remove(task);
             await _context.SaveChangesAsync();
+            
+            await _hubContext.Clients.All.SendAsync("RefreshProject", projectId);
         }
 
         public async Task<IEnumerable<TaskDependencyDto>> GetTaskDependenciesAsync(string taskId)
@@ -406,6 +419,12 @@ namespace TaskApi.Services
             }
 
             await _context.SaveChangesAsync();
+            
+            var succTaskObj = await _context.Tasks.FindAsync(successorId);
+            if (succTaskObj != null)
+            {
+                await _hubContext.Clients.All.SendAsync("RefreshProject", succTaskObj.ProjectId);
+            }
         }
 
         public async Task RemoveTaskDependencyAsync(string dependencyId, string actorId)
@@ -418,6 +437,12 @@ namespace TaskApi.Services
 
             _context.Set<TaskDependency>().Remove(dep);
             await _context.SaveChangesAsync();
+            
+            var succTaskObj = await _context.Tasks.FindAsync(dep.SuccessorTaskId);
+            if (succTaskObj != null)
+            {
+                await _hubContext.Clients.All.SendAsync("RefreshProject", succTaskObj.ProjectId);
+            }
         }
     }
 }

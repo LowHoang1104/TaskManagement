@@ -1,8 +1,8 @@
 // Android emulator: the host machine is reachable at 10.0.2.2 (NOT localhost,
 // which points at the emulator itself). For Windows desktop / web / Chrome,
 // const String kBaseUrl = 'http://10.0.2.2:5058/api';
-// const String kBaseUrl = 'https://taskapi20260720153803-b0dwbgggbebrcwg9.eastasia-01.azurewebsites.net/api';
-const String kBaseUrl = 'http://localhost:5058/api';
+const String kBaseUrl = 'https://taskapi20260720153803-b0dwbgggbebrcwg9.eastasia-01.azurewebsites.net/api';
+// const String kBaseUrl = 'http://localhost:5058/api';
 
 /// Timeout durations (in seconds).
 const int kConnectTimeout = 15;

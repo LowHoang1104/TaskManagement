@@ -1,5 +1,6 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.SignalR;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,6 +8,7 @@ using System.Threading.Tasks;
 using TaskApi.Data;
 using TaskApi.DTOs;
 using TaskApi.Models;
+using TaskApi.Hubs;
 
 namespace TaskApi.Services
 {
@@ -14,11 +16,13 @@ namespace TaskApi.Services
     {
         private readonly AppDbContext _context;
         private readonly IMapper _mapper;
+        private readonly IHubContext<NotificationHub> _hubContext;
 
-        public NotificationService(AppDbContext context, IMapper mapper)
+        public NotificationService(AppDbContext context, IMapper mapper, IHubContext<NotificationHub> hubContext)
         {
             _context = context;
             _mapper = mapper;
+            _hubContext = hubContext;
         }
 
         public async Task<IEnumerable<NotificationDto>> GetUserNotificationsAsync(string userId)
@@ -59,6 +63,8 @@ namespace TaskApi.Services
 
             _context.Notifications.Add(notification);
             await _context.SaveChangesAsync();
+            
+            await _hubContext.Clients.User(userId).SendAsync("ReceiveNotification", "New Notification");
         }
     }
 }

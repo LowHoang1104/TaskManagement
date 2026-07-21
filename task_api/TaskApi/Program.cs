@@ -27,9 +27,10 @@ namespace TaskApi
                 options.AddPolicy("AllowAll",
                     policy =>
                     {
-                        policy.AllowAnyOrigin()
+                        policy.SetIsOriginAllowed(_ => true)
                               .AllowAnyMethod()
-                              .AllowAnyHeader();
+                              .AllowAnyHeader()
+                              .AllowCredentials();
                     });
             });
 
@@ -69,6 +70,20 @@ namespace TaskApi
                         ValidIssuer = jwtSettings["Issuer"] ?? "TaskApi",
                         ValidAudience = jwtSettings["Audience"] ?? "TaskApiUser",
                         IssuerSigningKey = new SymmetricSecurityKey(key)
+                    };
+
+                    options.Events = new JwtBearerEvents
+                    {
+                        OnMessageReceived = context =>
+                        {
+                            var accessToken = context.Request.Query["access_token"];
+                            var path = context.HttpContext.Request.Path;
+                            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+                            {
+                                context.Token = accessToken;
+                            }
+                            return Task.CompletedTask;
+                        }
                     };
                 });
 

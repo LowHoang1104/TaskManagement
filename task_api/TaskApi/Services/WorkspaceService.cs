@@ -1,8 +1,10 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.SignalR;
 using TaskApi.Data;
 using TaskApi.DTOs;
 using TaskApi.Models;
+using TaskApi.Hubs;
 
 namespace TaskApi.Services
 {
@@ -11,12 +13,14 @@ namespace TaskApi.Services
         private readonly AppDbContext _context;
         private readonly IMapper _mapper;
         private readonly INotificationService _notificationService;
+        private readonly IHubContext<NotificationHub> _hubContext;
 
-        public WorkspaceService(AppDbContext context, IMapper mapper, INotificationService notificationService)
+        public WorkspaceService(AppDbContext context, IMapper mapper, INotificationService notificationService, IHubContext<NotificationHub> hubContext)
         {
             _context = context;
             _mapper = mapper;
             _notificationService = notificationService;
+            _hubContext = hubContext;
         }
 
         public async Task<IEnumerable<WorkspaceDto>> GetWorkspacesAsync(string userId)
@@ -66,6 +70,8 @@ namespace TaskApi.Services
             workspace.UpdatedAt = DateTime.UtcNow;
             
             await _context.SaveChangesAsync();
+            
+            await _hubContext.Clients.All.SendAsync("RefreshWorkspace", id);
         }
 
         public async Task<IEnumerable<WorkspaceMemberDto>> GetWorkspaceMembersAsync(string workspaceId, string actorId)
@@ -145,13 +151,15 @@ namespace TaskApi.Services
 
             var actorUser = await _context.Users.FindAsync(actorId);
 
-            // Type "Invite" → the app renders Accept / Decline actions.
             await _notificationService.CreateNotificationAsync(
                 userId: user.Id,
                 type: "Invite",
                 message: $"{actorUser?.FullName ?? "Someone"} invited you to workspace '{workspace.Name}'",
                 relatedId: workspace.Id
             );
+            
+            await _hubContext.Clients.User(user.Id).SendAsync("ReceiveNotification", "New Workspace Invite");
+            await _hubContext.Clients.All.SendAsync("RefreshWorkspace", workspaceId);
 
             return new WorkspaceMemberDto
             {
@@ -177,6 +185,8 @@ namespace TaskApi.Services
             member.Status = "Accepted";
             member.JoinedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
+            
+            await _hubContext.Clients.All.SendAsync("RefreshWorkspace", workspaceId);
 
             return new WorkspaceMemberDto
             {
@@ -203,6 +213,9 @@ namespace TaskApi.Services
 
             _context.Set<WorkspaceMember>().Remove(member);
             await _context.SaveChangesAsync();
+            
+            await _hubContext.Clients.All.SendAsync("RefreshWorkspace", workspaceId);
+            
             return true;
         }
 
@@ -229,6 +242,8 @@ namespace TaskApi.Services
 
             member.Role = newRole;
             await _context.SaveChangesAsync();
+            
+            await _hubContext.Clients.All.SendAsync("RefreshWorkspace", workspaceId);
 
             return new WorkspaceMemberDto
             {
@@ -272,6 +287,9 @@ namespace TaskApi.Services
             _context.Set<ProjectMember>().RemoveRange(projectMemberships);
 
             await _context.SaveChangesAsync();
+            
+            await _hubContext.Clients.All.SendAsync("RefreshWorkspace", workspaceId);
+            
             return true;
         }
     }

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:signalr_netcore/signalr_client.dart';
 import 'package:flutter/foundation.dart';
 import '../../../../core/storage/secure_storage.dart';
+import '../../../../core/constants/api_endpoints.dart';
 
 class SignalRService {
   HubConnection? _hubConnection;
@@ -9,9 +10,15 @@ class SignalRService {
   
   final _notificationController = StreamController<String>.broadcast();
   Stream<String> get notificationStream => _notificationController.stream;
+
+  final _projectRefreshController = StreamController<String>.broadcast();
+  Stream<String> get projectRefreshStream => _projectRefreshController.stream;
+
+  final _workspaceRefreshController = StreamController<String>.broadcast();
+  Stream<String> get workspaceRefreshStream => _workspaceRefreshController.stream;
   
-  // Update this to your actual backend URL when testing on a real device
-  final String serverUrl = "https://taskapi20260720153803-b0dwbgggbebrcwg9.eastasia-01.azurewebsites.net/hubs/notifications";
+  // Construct the SignalR hub URL dynamically based on kBaseUrl
+  final String serverUrl = "${kBaseUrl.replaceAll('/api', '')}/hubs/notifications";
 
   SignalRService(this.secureStorage) {
     _initConnection();
@@ -33,6 +40,8 @@ class SignalRService {
     });
 
     _hubConnection?.on("ReceiveNotification", _handleIncomingNotification);
+    _hubConnection?.on("RefreshProject", _handleRefreshProject);
+    _hubConnection?.on("RefreshWorkspace", _handleRefreshWorkspace);
   }
 
   Future<void> startConnection() async {
@@ -57,6 +66,22 @@ class SignalRService {
       final message = arguments[0] as String;
       debugPrint("Received Notification via SignalR: $message");
       _notificationController.add(message);
+    }
+  }
+
+  void _handleRefreshProject(List<Object?>? arguments) {
+    if (arguments != null && arguments.isNotEmpty) {
+      final projectId = arguments[0] as String;
+      debugPrint("Received RefreshProject for $projectId");
+      _projectRefreshController.add(projectId);
+    }
+  }
+
+  void _handleRefreshWorkspace(List<Object?>? arguments) {
+    if (arguments != null && arguments.isNotEmpty) {
+      final workspaceId = arguments[0] as String;
+      debugPrint("Received RefreshWorkspace for $workspaceId");
+      _workspaceRefreshController.add(workspaceId);
     }
   }
 }

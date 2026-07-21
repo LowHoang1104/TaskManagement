@@ -1,7 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart';
+import 'dart:async';
 import '../../domain/entities/workspace_entity.dart';
 import '../../application/i_services/i_workspace_service.dart';
 import '../../../core/di/injection_container.dart' as di;
+import '../../data/datasources/remote/signalr_service.dart';
 
 final workspaceServiceProvider = Provider<IWorkspaceService>((ref) {
   return di.sl<IWorkspaceService>();
@@ -33,9 +36,20 @@ class WorkspaceState {
 
 class WorkspaceNotifier extends StateNotifier<WorkspaceState> {
   final IWorkspaceService _service;
+  StreamSubscription<String>? _signalRSubscription;
 
   WorkspaceNotifier(this._service) : super(WorkspaceState()) {
     fetchWorkspaces();
+    
+    _signalRSubscription = di.sl<SignalRService>().workspaceRefreshStream.listen((_) {
+      _fetchWorkspacesSilently();
+    });
+  }
+
+  @override
+  void dispose() {
+    _signalRSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> fetchWorkspaces() async {
@@ -46,6 +60,14 @@ class WorkspaceNotifier extends StateNotifier<WorkspaceState> {
     state = result.fold(
       (error) => state.copyWith(isLoading: false, error: error),
       (workspaces) => state.copyWith(isLoading: false, workspaces: workspaces),
+    );
+  }
+
+  Future<void> _fetchWorkspacesSilently() async {
+    final result = await _service.getWorkspaces();
+    result.fold(
+      (error) => debugPrint("Silent fetch error: $error"),
+      (workspaces) => state = state.copyWith(workspaces: workspaces),
     );
   }
 

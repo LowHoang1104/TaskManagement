@@ -41,8 +41,8 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
     
     // Listen to real-time notifications
     _signalRSubscription = sl<SignalRService>().notificationStream.listen((message) {
-      // Whenever a SignalR push arrives, refetch the list
-      fetchNotifications();
+      // Whenever a SignalR push arrives, refetch the list silently
+      _fetchNotificationsSilently();
     });
   }
 
@@ -59,6 +59,15 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
     result.fold(
       (error) => state = state.copyWith(isLoading: false, error: error),
       (notifications) => state = state.copyWith(isLoading: false, notifications: notifications),
+    );
+  }
+
+  Future<void> _fetchNotificationsSilently() async {
+    final result = await sl<INotificationService>().getMyNotifications();
+
+    result.fold(
+      (error) => null, // Ignore silent fetch error
+      (notifications) => state = state.copyWith(notifications: notifications),
     );
   }
 

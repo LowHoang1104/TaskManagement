@@ -1,8 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart';
+import 'dart:async';
 import '../../domain/entities/task_entity.dart';
 import '../../domain/entities/enums.dart';
 import '../../application/i_services/i_task_service.dart';
 import '../../../core/di/injection_container.dart' as di;
+import '../../data/datasources/remote/signalr_service.dart';
 
 final taskServiceProvider = Provider<ITaskService>((ref) {
   return di.sl<ITaskService>();
@@ -35,8 +38,24 @@ class TaskState {
 class TaskNotifier extends StateNotifier<TaskState> {
   final ITaskService _service;
   final String projectId;
+  StreamSubscription<String>? _signalRSubscription;
 
-  TaskNotifier(this._service, this.projectId) : super(TaskState());
+  TaskNotifier(this._service, this.projectId) : super(TaskState()) {
+    fetchTasks();
+    
+    _signalRSubscription = di.sl<SignalRService>().projectRefreshStream.listen((updatedProjectId) {
+      if (updatedProjectId == projectId) {
+        // Fetch tasks silently (without setting isLoading: true which would block the UI)
+        _fetchTasksSilently();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _signalRSubscription?.cancel();
+    super.dispose();
+  }
 
   Future<void> fetchTasks() async {
     state = state.copyWith(isLoading: true, error: null);
@@ -46,6 +65,14 @@ class TaskNotifier extends StateNotifier<TaskState> {
     state = result.fold(
       (error) => state.copyWith(isLoading: false, error: error),
       (tasks) => state.copyWith(isLoading: false, tasks: tasks),
+    );
+  }
+
+  Future<void> _fetchTasksSilently() async {
+    final result = await _service.getTasks(projectId);
+    result.fold(
+      (error) => debugPrint("Silent fetch error: $error"),
+      (tasks) => state = state.copyWith(tasks: tasks),
     );
   }
 

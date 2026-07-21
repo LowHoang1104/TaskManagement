@@ -1,10 +1,10 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using System.Threading.Tasks;
 
 namespace TaskApi.Hubs
 {
-    // TODO: Uncomment [Authorize] once the frontend passes the JWT token.
-    // [Authorize]
+    [Authorize]
     public class NotificationHub : Hub
     {
         public async Task SendNotificationToUser(string userId, string message)

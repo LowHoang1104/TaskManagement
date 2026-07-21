@@ -1,8 +1,10 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.SignalR;
 using TaskApi.Data;
 using TaskApi.DTOs;
 using TaskApi.Models;
+using TaskApi.Hubs;
 
 namespace TaskApi.Services
 {
@@ -11,12 +13,14 @@ namespace TaskApi.Services
         private readonly AppDbContext _context;
         private readonly IMapper _mapper;
         private readonly INotificationService _notificationService;
+        private readonly IHubContext<NotificationHub> _hubContext;
 
-        public ProjectService(AppDbContext context, IMapper mapper, INotificationService notificationService)
+        public ProjectService(AppDbContext context, IMapper mapper, INotificationService notificationService, IHubContext<NotificationHub> hubContext)
         {
             _context = context;
             _mapper = mapper;
             _notificationService = notificationService;
+            _hubContext = hubContext;
         }
 
         public async Task<IEnumerable<ProjectDto>> GetProjectsAsync(string workspaceId, string userId)
@@ -86,6 +90,8 @@ namespace TaskApi.Services
             
             _context.Set<ProjectMember>().Add(ownerMember);
             await _context.SaveChangesAsync();
+            
+            await _hubContext.Clients.All.SendAsync("RefreshWorkspace", workspaceId);
 
             return _mapper.Map<ProjectDto>(project);
         }
@@ -106,8 +112,11 @@ namespace TaskApi.Services
                 throw new UnauthorizedAccessException("Only the workspace owner can delete the project.");
             }
 
+            var workspaceId = project.WorkspaceId;
             _context.Projects.Remove(project);
             await _context.SaveChangesAsync();
+            
+            await _hubContext.Clients.All.SendAsync("RefreshWorkspace", workspaceId);
         }
 
         public async Task<IEnumerable<ProjectMemberDto>> GetProjectMembersAsync(string projectId)
@@ -199,6 +208,9 @@ namespace TaskApi.Services
                 message: $"You have been added to project '{project.Name}' by {actorUser?.FullName ?? "someone"}",
                 relatedId: project.Id
             );
+            
+            await _hubContext.Clients.All.SendAsync("ReceiveNotification", "New Project Invite");
+            await _hubContext.Clients.All.SendAsync("RefreshWorkspace", project.WorkspaceId);
 
             return new ProjectMemberDto
             {
@@ -240,6 +252,12 @@ namespace TaskApi.Services
 
             member.Role = newRole;
             await _context.SaveChangesAsync();
+            
+            var project = await _context.Projects.FindAsync(projectId);
+            if (project != null)
+            {
+                await _hubContext.Clients.All.SendAsync("RefreshWorkspace", project.WorkspaceId);
+            }
 
             return new ProjectMemberDto
             {
@@ -266,6 +284,12 @@ namespace TaskApi.Services
 
             member.Status = "Accepted";
             await _context.SaveChangesAsync();
+            
+            var project = await _context.Projects.FindAsync(projectId);
+            if (project != null)
+            {
+                await _hubContext.Clients.All.SendAsync("RefreshWorkspace", project.WorkspaceId);
+            }
 
             return new ProjectMemberDto
             {
@@ -296,6 +320,12 @@ namespace TaskApi.Services
 
             _context.Set<ProjectMember>().Remove(member);
             await _context.SaveChangesAsync();
+            
+            var project = await _context.Projects.FindAsync(projectId);
+            if (project != null)
+            {
+                await _hubContext.Clients.All.SendAsync("RefreshWorkspace", project.WorkspaceId);
+            }
 
             return true;
         }
@@ -342,6 +372,9 @@ namespace TaskApi.Services
             }
 
             await _context.SaveChangesAsync();
+            
+            await _hubContext.Clients.All.SendAsync("RefreshWorkspace", project.WorkspaceId);
+            
             return true;
         }
 
@@ -383,6 +416,9 @@ namespace TaskApi.Services
 
             _context.Set<ProjectMember>().Remove(targetMember);
             await _context.SaveChangesAsync();
+            
+            await _hubContext.Clients.All.SendAsync("RefreshWorkspace", project.WorkspaceId);
+            
             return true;
         }
     }
