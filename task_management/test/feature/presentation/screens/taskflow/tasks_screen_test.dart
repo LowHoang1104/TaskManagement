@@ -9,8 +9,12 @@ import 'package:task_management/feature/presentation/providers/workspace_provide
 import 'package:task_management/feature/application/i_services/i_workspace_service.dart';
 import 'package:task_management/feature/presentation/taskflow/screens/tasks_screen.dart';
 import 'package:task_management/feature/presentation/taskflow/taskflow_providers.dart';
+import 'package:task_management/feature/data/datasources/remote/signalr_service.dart';
+import 'package:task_management/core/di/injection_container.dart' as di;
 
 class MockWorkspaceService extends Mock implements IWorkspaceService {}
+
+class MockSignalRService extends Mock implements SignalRService {}
 
 class MockWorkspaceNotifier extends WorkspaceNotifier with Mock {
   MockWorkspaceNotifier(super.service);
@@ -40,6 +44,22 @@ void main() {
     'Project Alpha',
     'w1',
   );
+
+  setUp(() {
+    // WorkspaceNotifier's constructor reads SignalRService from GetIt, so a
+    // mock must be registered before the screen is built.
+    final mockSignalR = MockSignalRService();
+    when(() => mockSignalR.workspaceRefreshStream)
+        .thenAnswer((_) => const Stream<String>.empty());
+    if (di.sl.isRegistered<SignalRService>()) {
+      di.sl.unregister<SignalRService>();
+    }
+    di.sl.registerSingleton<SignalRService>(mockSignalR);
+  });
+
+  tearDown(() async {
+    await di.sl.reset();
+  });
 
   Widget createTasksScreen({AsyncValue<List<TaskWithProject>> tasksState = const AsyncValue.data([])}) {
     return ProviderScope(

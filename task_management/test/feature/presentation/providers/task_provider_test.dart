@@ -6,8 +6,12 @@ import 'package:task_management/feature/application/i_services/i_task_service.da
 import 'package:task_management/feature/domain/entities/task_entity.dart';
 import 'package:task_management/feature/domain/entities/enums.dart';
 import 'package:task_management/feature/presentation/providers/task_provider.dart';
+import 'package:task_management/feature/data/datasources/remote/signalr_service.dart';
+import 'package:task_management/core/di/injection_container.dart' as di;
 
 class MockTaskService extends Mock implements ITaskService {}
+
+class MockSignalRService extends Mock implements SignalRService {}
 
 void main() {
   late MockTaskService mockTaskService;
@@ -29,8 +33,26 @@ void main() {
   );
 
   setUp(() {
+    // TaskNotifier's constructor reads SignalRService from GetIt, so a mock
+    // must be registered before it is built.
+    final mockSignalR = MockSignalRService();
+    when(() => mockSignalR.projectRefreshStream)
+        .thenAnswer((_) => const Stream<String>.empty());
+    if (di.sl.isRegistered<SignalRService>()) {
+      di.sl.unregister<SignalRService>();
+    }
+    di.sl.registerSingleton<SignalRService>(mockSignalR);
+
     mockTaskService = MockTaskService();
+    // The constructor also calls fetchTasks(), so getTasks must be stubbed
+    // before the notifier is built. Individual tests re-stub as needed.
+    when(() => mockTaskService.getTasks('p1'))
+        .thenAnswer((_) async => const Right(<TaskEntity>[]));
     notifier = TaskNotifier(mockTaskService, 'p1');
+  });
+
+  tearDown(() async {
+    await di.sl.reset();
   });
 
   group('fetchTasks', () {

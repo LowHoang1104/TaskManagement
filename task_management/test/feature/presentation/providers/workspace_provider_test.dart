@@ -4,8 +4,12 @@ import 'package:dartz/dartz.dart';
 import 'package:task_management/feature/application/i_services/i_workspace_service.dart';
 import 'package:task_management/feature/domain/entities/workspace_entity.dart';
 import 'package:task_management/feature/presentation/providers/workspace_provider.dart';
+import 'package:task_management/feature/data/datasources/remote/signalr_service.dart';
+import 'package:task_management/core/di/injection_container.dart' as di;
 
 class MockWorkspaceService extends Mock implements IWorkspaceService {}
+
+class MockSignalRService extends Mock implements SignalRService {}
 
 void main() {
   late WorkspaceNotifier notifier;
@@ -22,11 +26,25 @@ void main() {
   );
 
   setUp(() {
+    // WorkspaceNotifier's constructor reads SignalRService from GetIt, so a
+    // mock must be registered before it is built.
+    final mockSignalR = MockSignalRService();
+    when(() => mockSignalR.workspaceRefreshStream)
+        .thenAnswer((_) => const Stream<String>.empty());
+    if (di.sl.isRegistered<SignalRService>()) {
+      di.sl.unregister<SignalRService>();
+    }
+    di.sl.registerSingleton<SignalRService>(mockSignalR);
+
     mockService = MockWorkspaceService();
     // Stub fetchWorkspaces because it's called in constructor
     when(() => mockService.getWorkspaces()).thenAnswer((_) async => Right([tWorkspace]));
-    
+
     notifier = WorkspaceNotifier(mockService);
+  });
+
+  tearDown(() async {
+    await di.sl.reset();
   });
 
   group('WorkspaceNotifier - fetchWorkspaces', () {

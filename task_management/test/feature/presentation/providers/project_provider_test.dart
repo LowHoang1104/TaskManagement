@@ -4,8 +4,12 @@ import 'package:dartz/dartz.dart';
 import 'package:task_management/feature/application/i_services/i_project_service.dart';
 import 'package:task_management/feature/domain/entities/project_entity.dart';
 import 'package:task_management/feature/presentation/providers/project_provider.dart';
+import 'package:task_management/feature/data/datasources/remote/signalr_service.dart';
+import 'package:task_management/core/di/injection_container.dart' as di;
 
 class MockProjectService extends Mock implements IProjectService {}
+
+class MockSignalRService extends Mock implements SignalRService {}
 
 void main() {
   late ProjectNotifier notifier;
@@ -24,8 +28,22 @@ void main() {
   );
 
   setUp(() {
+    // ProjectNotifier's constructor reads SignalRService from GetIt, so a
+    // mock must be registered before it is built.
+    final mockSignalR = MockSignalRService();
+    when(() => mockSignalR.workspaceRefreshStream)
+        .thenAnswer((_) => const Stream<String>.empty());
+    if (di.sl.isRegistered<SignalRService>()) {
+      di.sl.unregister<SignalRService>();
+    }
+    di.sl.registerSingleton<SignalRService>(mockSignalR);
+
     mockService = MockProjectService();
     notifier = ProjectNotifier(mockService);
+  });
+
+  tearDown(() async {
+    await di.sl.reset();
   });
 
   group('ProjectNotifier - fetchProjects', () {
